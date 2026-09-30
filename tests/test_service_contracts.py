@@ -10,27 +10,24 @@ from __future__ import annotations
 from dataclasses import dataclass
 
 import pytest
+import torch
 from fastapi import HTTPException
 
 from src.truetype import api
-from src.truetype.letters import LetterReadout, distribution_from_letter_logits
 from src.truetype.render import render_question
 from src.truetype.service import TypeSafeReplica
 
 
-def _readout(**preferred: float) -> LetterReadout:
+def _rows(count: int, **preferred: float) -> torch.Tensor:
     logits = {chr(ord("A") + index): float(index) for index in range(26)}
     logits.update(preferred)
-    return LetterReadout(
-        logits=logits,
-        top=distribution_from_letter_logits(logits, top_k=2),
-        letter_mass=0.9,
-    )
+    return torch.tensor([list(logits.values())] * count)
 
 
 @dataclass
 class _Config:
     prefix_cache: bool = True
+    top_k: int = 2
 
 
 class RecordingEngine:
@@ -39,22 +36,20 @@ class RecordingEngine:
     def __init__(self, *, prefix_cache: bool = True) -> None:
         self.config = _Config(prefix_cache=prefix_cache)
         self.capacity_requests: list[int] = []
-        self.batch_calls: list[tuple[list[str], float]] = []
-        self.prefix_calls: list[tuple[str, list[str], float | None]] = []
+        self.batch_calls: list[list[str]] = []
+        self.prefix_calls: list[tuple[str, list[str]]] = []
 
     def ensure_prefix_capacity(self, count: int) -> int:
         self.capacity_requests.append(count)
         return count
 
-    def score_batch(self, prompts: list[str], *, temperature: float) -> list[LetterReadout]:
-        self.batch_calls.append((prompts, temperature))
-        return [_readout(A=4.0, B=1.0, Y=3.0, N=0.0) for _ in prompts]
+    def score_batch_device(self, prompts: list[str]) -> torch.Tensor:
+        self.batch_calls.append(prompts)
+        return _rows(len(prompts), A=4.0, B=1.0, Y=3.0, N=0.0)
 
-    def score_with_prefix(
-        self, prefix: str, suffixes: list[str], *, temperature: float | None = None
-    ) -> list[LetterReadout]:
-        self.prefix_calls.append((prefix, suffixes, temperature))
-        return [_readout(A=4.0, B=1.0, Y=3.0, N=0.0) for _ in suffixes]
+    def score_with_prefix_device(self, prefix: str, suffixes: list[str]) -> torch.Tensor:
+        self.prefix_calls.append((prefix, suffixes))
+        return _rows(len(suffixes), A=4.0, B=1.0, Y=3.0, N=0.0)
 
 
 QUESTIONS = {
@@ -77,11 +72,10 @@ def test_system_one_uses_cached_prefixes_and_preserves_question_order():
     assert engine.capacity_requests == [2]
     assert engine.batch_calls == []
     assert len(engine.prefix_calls) == 2
-    assert [suffixes for _, suffixes, _ in engine.prefix_calls] == [
+    assert [suffixes for _, suffixes in engine.prefix_calls] == [
         ["Text: duplicate charge\nAnswer:"],
         ["Text: duplicate charge\nAnswer:"],
     ]
-    assert all(temperature == 0.5 for _, _, temperature in engine.prefix_calls)
     assert result.model == "requested-model"
     assert list(result.answers) == ["refund", "team"]
     assert result.answers["refund"] == {"type": "noul", "noul": pytest.approx(0.997527, abs=1e-6)}
@@ -97,8 +91,7 @@ def test_system_one_without_prefix_cache_scores_complete_prompts():
 
     assert engine.capacity_requests == []
     assert engine.prefix_calls == []
-    prompts, temperature = engine.batch_calls[0]
-    assert temperature == 0.25
+    prompts = engine.batch_calls[0]
     assert len(prompts) == 2
     assert '"order": 104' in prompts[0]
     assert prompts[0].endswith("Answer:")
@@ -115,7 +108,7 @@ def test_warm_populates_each_prefix_and_empty_requests_are_free():
     elapsed = service.warm(QUESTIONS)
     assert elapsed >= 0.0
     assert engine.capacity_requests == [2]
-    assert [suffixes for _, suffixes, _ in engine.prefix_calls] == [
+    assert [suffixes for _, suffixes in engine.prefix_calls] == [
         ["Text: warmup\nAnswer:"],
         ["Text: warmup\nAnswer:"],
     ]
@@ -138,12 +131,18 @@ def test_service_prompts_match_the_public_renderer_when_cache_is_disabled():
     from src.truetype.questions import build_question
 
     expected = render_question(build_question("only", spec["only"]), "refund please").text
-    assert engine.batch_calls[0][0] == [expected]
+    assert engine.batch_calls[0] == [expected]
 
 
 def test_health_reports_starting_without_a_lifespan_service(monkeypatch):
     monkeypatch.setattr(api, "_state", {})
     assert api.health() == {"status": "starting", "model_loaded": False}
+
+
+def test_home_redirects_to_the_space_ui():
+    response = api.home()
+    assert response.status_code == 307
+    assert response.headers["location"] == "/ui"
 
 
 def test_system_one_returns_503_until_the_lifespan_registers_a_service(monkeypatch):

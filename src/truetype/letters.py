@@ -37,18 +37,6 @@ class LetterReadout:
     top: "SoftmaxDistribution"
     letter_mass: float | None = None
 
-    @property
-    def top_letter(self) -> str:
-        return self.top.top_letter
-
-    @property
-    def top_probability(self) -> float:
-        return self.top.top_probability
-
-    @property
-    def probabilities(self) -> dict[str, float]:
-        return self.top.probabilities
-
 
 @dataclass(frozen=True)
 class SoftmaxDistribution:

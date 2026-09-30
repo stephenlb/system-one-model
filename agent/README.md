@@ -6,7 +6,7 @@ This Python provider accepts the exact JSON body used by the local replica's
 `answers`, and `usage` fields as that endpoint.
 
 The handler executes the same Gemma inference implementation and honors the
-same `TYPESAFE_REPLICA_*` environment settings as the Docker image. Its package
+same `TYPESAFE_REPLICA_*` environment settings as the API server. Its package
 dependency installs the public replica repository; when run from this checkout,
 the handler instead uses the sibling source tree so local changes take effect.
 

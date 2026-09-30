@@ -1,7 +1,7 @@
 # Architecture
 
-A plain-text summary of the diagram in `architecture/index.html`, focused on how
-input becomes a prompt and how the model's output becomes a typed answer.
+A plain-text summary of how input becomes a prompt and how the model's output
+becomes a typed answer.
 The inference core is `src/truetype/engine.py`.
 
 ## The one-sentence version
@@ -24,11 +24,11 @@ state + questions -> prompts -> 1 forward pass -> logits[A..Z] -> typed answers
 
 - `state` — a string, dict, or list describing what is being judged.
 - `questions` — a map of question id to `{type, instructions, criteria}`.
-- `model`, `temperature`, `include_debug` — optional knobs.
+- `model`, `temperature` — optional knobs.
 
-Pydantic rejects a non-positive `temperature` and an empty `questions` map at
-parse time (422). A request that lands before weights finish
-loading is 503. The process holds exactly one engine, so the model loads
+Pydantic rejects a non-positive `temperature` at parse time and the handler
+rejects an empty `questions` map (both 422). A request that lands before weights
+finish loading is 503. The process holds exactly one engine, so the model loads
 once per process.
 
 ### 2. Orchestration (`service.py`)
@@ -71,12 +71,12 @@ are visited low, high, then ascending, so no positional A/B/C shortcut exists.
 
 ### 4. Tokenization and the forward pass (`engine.py`)
 
-`load()` (`engine.py:110`) is idempotent and double-checked under a lock. Device
+`load()` is idempotent and double-checked under a lock. Device
 resolution is cuda → mps → cpu; dtype is `float32` on cpu and `bfloat16`
 elsewhere. Padding is left-side so the last position is always the real end of
 the prompt.
 
-At load time `_build_letter_token_ids()` (`engine.py:160`) maps `A-Z` to token
+At load time `_build_letter_token_ids()` maps `A-Z` to token
 ids, preferring the space-prefixed `" A"` form and falling back to bare `"A"`.
 All 26 must be single tokens **from the same variant** and mutually distinct —
 mixing `"▁Q"` with a bare `"Q"` would make the logits incomparable — otherwise
@@ -84,21 +84,21 @@ the engine refuses to run.
 
 Two scoring paths:
 
-- `score_batch()` (`engine.py:210`) — chunks prompts at `max_batch_size=16`,
+- `score_batch()` — chunks prompts at `max_batch_size=16`,
   tokenizes with padding, and runs one `forward` per chunk with
   `logits_to_keep=1` and `use_cache=False`, then takes `logits[:, -1, :]`.
-- `score_with_prefix()` (`engine.py:297`) — reuses the KV cache of the static
+- `score_with_prefix()` — reuses the KV cache of the static
   prefix. On a **miss**, one full forward runs (identical cost to the uncached
   path) and the prefix slice of its KV is kept via `cache.crop(-tail_len)`. On a
-  **hit**, only the tail is prefilled, passing `past_key_values` and
-  `cache_position=arange(prefix_len, total)`, and the entry is cropped back to
-  prefix-only afterward.
+  **hit**, only the tail is prefilled on a shallow fork of the cached entry,
+  passing `past_key_values` and `cache_position=arange(prefix_len, total)`, so
+  the stored prefix is never mutated.
 
 The full prompt is always tokenized as one string and the cached prefix ids are
 compared against its head. If they disagree (a tokenizer merge across the
 boundary, say), the prompt silently falls back to a full pass — correctness
 never depends on the cache. The cache is an `OrderedDict` LRU under its own
-lock, with `ensure_prefix_capacity()` (`engine.py:273`) growing it one-way to
+lock, with `ensure_prefix_capacity()` growing it one-way to
 cover every distinct prefix in a request, clamped to a hard cap.
 
 ## Output processing
@@ -111,8 +111,10 @@ gather.
 
 ### 1. Gather the letters (`letters.py`)
 
-`batch_letter_logits()` indexes the 26 `A-Z` token ids out of the vocab row into
-one logit dict per prompt. This is the raw vote, before any renormalization.
+The 26 `A-Z` logits come either straight from the reduced output head or, in the
+fallback, from `gather_letter_logits()` indexing the `A-Z` token ids out of the
+vocab row. `batch_letter_logits()` turns them into one logit dict per prompt.
+This is the raw vote, before any renormalization.
 
 ### 2. Renormalize over legal letters
 
@@ -143,9 +145,10 @@ telemetry is unavailable in 26-logit mode.
 
 `answers` is keyed by question id. `usage` is approximate by construction:
 `input_tokens = chars // 4` across rendered prompts, and `output_tokens` equals
-the number of questions, since each answer is exactly one token. With
-`include_debug`, the response also carries the exact prompt text, the raw letter
-logits, and the ranked top-k letters per question.
+the number of questions, since each answer is exactly one token. The HTTP API
+does not expose debug output; `TypeSafeReplica.system_one(include_debug=True)`
+returns the exact prompt text, the raw letter logits, and the ranked top-k
+letters per question to Python callers.
 
 ## Deliberately absent
 

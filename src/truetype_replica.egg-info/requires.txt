@@ -1,8 +1,12 @@
+
+[server]
 torch
-transformers
+transformers>=5.17.0
 fastapi
 uvicorn
 pydantic
+accelerate
+pillow
 
 [test]
 pytest

@@ -1,6 +1,8 @@
 README.md
 pyproject.toml
+src/truetype/__init__.py
 src/truetype/api.py
+src/truetype/client.py
 src/truetype/engine.py
 src/truetype/letters.py
 src/truetype/questions.py
@@ -12,4 +14,7 @@ src/truetype_replica.egg-info/dependency_links.txt
 src/truetype_replica.egg-info/entry_points.txt
 src/truetype_replica.egg-info/requires.txt
 src/truetype_replica.egg-info/top_level.txt
+tests/test_client.py
+tests/test_core_contracts.py
+tests/test_service_contracts.py
 tests/test_truetype.py

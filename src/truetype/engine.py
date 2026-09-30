@@ -59,12 +59,6 @@ class EngineConfig:
     top_k: int = 5
     temperature: float = DEFAULT_TEMPERATURE
     max_batch_size: int = 16
-    # Length bucketing can reduce padding for large, heterogeneous CPU/CUDA
-    # batches. On the tested MPS workload, its extra tokenization pass costs
-    # more than the saved work, so leave it opt-in.
-    bucket_by_length: bool = False
-    trust_remote_code: bool = False
-    letters_with_leading_space: bool = True
     # Replace Gemma's vocabulary projection with its 26 A-Z rows on accelerators.
     # Set false to retain the original head for parity diagnosis.
     restrict_output_to_letters: bool = True
@@ -80,7 +74,6 @@ class EngineConfig:
     max_cached_prefixes: int = 16
     # Ceiling for auto-growth. Lower this on memory-constrained machines.
     prefix_cache_hard_cap: int = PREFIX_CACHE_HARD_CAP
-    extra: dict = field(default_factory=dict)
 
 
 @dataclass
@@ -118,9 +111,7 @@ class GemmaLetterEngine:
         self._tokenizer = None
         self._letter_token_ids: dict[str, int] = {}
         self._letter_token_id_tensor = None
-        self._full_output_head = None
         self.letter_output_head_active = False
-        self._pad_token_id: int | None = None
         self.load_seconds: float | None = None
         # The LRU lock only protects map operations. Inference forks the cache's
         # lightweight metadata under an entry-local lock, allowing independent
@@ -156,10 +147,7 @@ class GemmaLetterEngine:
             started = time.time()
             device = self._resolve_device()
 
-            self._tokenizer = AutoTokenizer.from_pretrained(
-                self.config.model_id,
-                trust_remote_code=self.config.trust_remote_code,
-            )
+            self._tokenizer = AutoTokenizer.from_pretrained(self.config.model_id)
 
             dtype = self.config.dtype
             if dtype == "auto":
@@ -171,7 +159,6 @@ class GemmaLetterEngine:
                 self.config.model_id,
                 dtype=torch_dtype,
                 device_map=device if device != "mps" else None,
-                trust_remote_code=self.config.trust_remote_code,
                 low_cpu_mem_usage=True,
             )
             if device == "mps":
@@ -183,9 +170,6 @@ class GemmaLetterEngine:
                 list(self._letter_token_ids.values()), dtype=torch.long, device=self._model.device
             )
             self._install_letter_output_head()
-            self._pad_token_id = self._tokenizer.pad_token_id
-            if self._pad_token_id is None:
-                self._pad_token_id = self._tokenizer.eos_token_id
             self._tokenizer.padding_side = "left"
 
             self.load_seconds = time.time() - started
@@ -213,8 +197,6 @@ class GemmaLetterEngine:
 
         variants: list[tuple[str, dict[str, int]]] = []
         candidate_forms = [("space-prefixed", " {}"), ("bare", "{}")]
-        if not self.config.letters_with_leading_space:
-            candidate_forms.reverse()
 
         for name, template in candidate_forms:
             mapping: dict[str, int] = {}
@@ -276,7 +258,6 @@ class GemmaLetterEngine:
                     reduced.bias.copy_(head.bias.index_select(0, self._letter_token_id_tensor))
             reduced.requires_grad_(False)
             set_head(reduced)
-            self._full_output_head = head
             self.letter_output_head_active = True
             logger.info("installed 26-logit A-Z output head on %s", self._model.device.type)
         except Exception as exc:
@@ -307,23 +288,13 @@ class GemmaLetterEngine:
             import torch
             return torch.empty((0, len(LETTERS)), device=self._model.device, dtype=torch.float32)
 
-        # Bucketing is opt-in: on the measured MPS workload the extra
-        # tokenization pass outweighed padding savings. Reassemble by index so
-        # this remains an order-preserving public API.
-        ordered = list(enumerate(prompts))
-        if self.config.bucket_by_length:
-            tokenized = self._tokenizer(list(prompts), add_special_tokens=True)
-            lengths = [len(ids) for ids in tokenized.input_ids]
-            ordered.sort(key=lambda item: lengths[item[0]])
-        results = [None] * len(prompts)
-        batch_size = max(1, self.config.max_batch_size)
-        for start in range(0, len(ordered), batch_size):
-            indexed_chunk = ordered[start : start + batch_size]
-            chunk_results = self._score_chunk_device([prompt for _, prompt in indexed_chunk])
-            for (index, _), result in zip(indexed_chunk, chunk_results):
-                results[index] = result
         import torch
-        return torch.stack([result for result in results if result is not None])
+
+        batch_size = max(1, self.config.max_batch_size)
+        return torch.cat([
+            self._score_chunk_device(list(prompts[start : start + batch_size]))
+            for start in range(0, len(prompts), batch_size)
+        ])
 
     def _score_chunk_device(self, prompts: list[str]):
         import torch
@@ -346,11 +317,6 @@ class GemmaLetterEngine:
             )
 
         return self._letter_values_from_model_logits(outputs.logits[:, -1, :])
-
-    def score_one(
-        self, prompt: str, *, top_k: int | None = None, temperature: float | None = None
-    ) -> LetterReadout:
-        return self.score_batch([prompt], top_k=top_k, temperature=temperature)[0]
 
     def _letter_values_from_model_logits(self, model_logits):
         """Return A-Z logits in float32 without leaving the active device."""

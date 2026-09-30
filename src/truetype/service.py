@@ -7,15 +7,9 @@ import time
 from dataclasses import dataclass, field
 
 from .engine import DEFAULT_TEMPERATURE, EngineConfig, GemmaLetterEngine
-from .letters import LetterReadout
-from .questions import Question, QuestionAnswer, build_question, score_question, score_question_tensor
+from .letters import batch_letter_logits, distribution_from_letter_logits
+from .questions import Question, build_question, score_question_tensor
 from .render import render_batch, render_example_prefix, render_target_block
-
-SUPPORTED_MODELS = {
-    "gemma-4-12b": "google/gemma-4-12B",
-    "gemma-4-12b-base": "google/gemma-4-12B",
-    "google/gemma-4-12B": "google/gemma-4-12B",
-}
 
 
 @dataclass
@@ -50,40 +44,11 @@ class TypeSafeReplica:
         if self.engine.config.prefix_cache:
             self.engine.ensure_prefix_capacity(len(parsed))
         for question in parsed:
-            self.engine.score_with_prefix(
+            self.engine.score_with_prefix_device(
                 render_example_prefix(question),
                 [render_target_block(question, "warmup")],
             )
         return (time.perf_counter() - started) * 1000
-
-    def _score_questions(
-        self,
-        questions: list[Question],
-        state: str,
-        *,
-        temperature: float,
-    ) -> tuple[list[LetterReadout], dict[str, str]]:
-        """Render once for accounting, then use the fastest scoring path available."""
-        rendered = render_batch(questions, state)
-        prompts = {item.question_id: item.text for item in rendered}
-
-        if not self.engine.config.prefix_cache:
-            return (
-                self.engine.score_batch(list(prompts.values()), temperature=temperature),
-                prompts,
-            )
-
-        self.engine.ensure_prefix_capacity(len(questions))
-        readouts = []
-        for question in questions:
-            readouts.extend(
-                self.engine.score_with_prefix(
-                    render_example_prefix(question),
-                    [render_target_block(question, state)],
-                    temperature=temperature,
-                )
-            )
-        return readouts, prompts
 
     def _score_question_values(
         self,
@@ -124,41 +89,30 @@ class TypeSafeReplica:
             build_question(qid, spec) for qid, spec in questions.items()
         ]
 
-        tensor_path = callable(getattr(self.engine, "score_batch_device", None)) and callable(
-            getattr(self.engine, "score_with_prefix_device", None)
-        )
-        if tensor_path:
-            distributions, prompts = self._score_question_values(parsed, state_text)
-        else:
-            distributions, prompts = self._score_questions(parsed, state_text, temperature=temperature)
+        rows, prompts = self._score_question_values(parsed, state_text)
 
         answers: dict[str, dict] = {}
         debug: dict[str, dict] = {}
-        for question, readout in zip(parsed, distributions):
-            if tensor_path:
-                answer = score_question_tensor(question, readout, temperature=temperature)
-            else:
-                # Score over the full 26-letter readout so a question with more
-                # options than top_k is never truncated.
-                answer = score_question(question, readout.logits, temperature=temperature)
-            answers[question.id] = answer.to_dict()
+        for question, row in zip(parsed, rows):
+            answers[question.id] = score_question_tensor(
+                question, row, temperature=temperature
+            ).to_dict()
             if include_debug:
-                if tensor_path:
-                    readout = self.engine._materialize_readouts(
-                        readout.unsqueeze(0), self.engine.config.top_k, temperature
-                    )[0]
+                logits = batch_letter_logits(row.unsqueeze(0))[0]
+                top = distribution_from_letter_logits(
+                    logits, top_k=self.engine.config.top_k, temperature=temperature
+                )
                 debug[question.id] = {
                     "prompt": prompts[question.id],
-                    "letter_logits": readout.logits,
-                    "top_k": readout.top.top_k,
-                    "top_k_letters": [letter for letter, _ in readout.top.ranked],
+                    "letter_logits": logits,
+                    "top_k": top.top_k,
+                    "top_k_letters": [letter for letter, _ in top.ranked],
                 }
 
         input_tokens = sum(map(len, prompts.values())) // 4
-        result = BatchResult(
+        return BatchResult(
             model=model or self.model_name,
             answers=answers,
             usage={"input_tokens": input_tokens, "output_tokens": len(parsed)},
             debug=debug,
         )
-        return result

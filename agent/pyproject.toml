@@ -9,9 +9,7 @@ description = "Blocks Network adapter for the open-source Jev System One replica
 requires-python = ">=3.12"
 dependencies = [
     "blocks-network",
-    "truetype-replica @ git+https://github.com/stephenlb/truetype.ai-open.git",
-    "accelerate",
-    "pillow",
+    "truetype-replica[server] @ git+https://github.com/stephenlb/truetype.ai-open.git",
 ]
 
 [tool.setuptools]

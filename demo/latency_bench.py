@@ -172,7 +172,7 @@ def main() -> None:
     plain = GemmaLetterEngine(EngineConfig(top_k=5, prefix_cache=False))
     for attr in (
         "_model", "_tokenizer", "_letter_token_ids", "_letter_token_id_tensor",
-        "_pad_token_id", "load_seconds",
+        "load_seconds",
     ):
         setattr(plain, attr, getattr(cached, attr))
 
@@ -256,7 +256,6 @@ def main() -> None:
             "_tokenizer",
             "_letter_token_ids",
             "_letter_token_id_tensor",
-            "_pad_token_id",
             "load_seconds",
             "letter_variant",
         ):

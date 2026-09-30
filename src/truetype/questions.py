@@ -10,7 +10,7 @@ from __future__ import annotations
 import math
 from dataclasses import dataclass, field
 
-from .letters import LETTER_INDEX, LETTERS
+from .letters import LETTER_INDEX, LETTERS, _softmax
 
 # Fixed bank of question-agnostic demonstrations. Their predicates differ from the
 # target question on purpose: they teach the letter-slot format, not the task.
@@ -68,14 +68,6 @@ class QuestionAnswer:
             payload["probabilities"] = {k: round(v, 6) for k, v in self.probabilities.items()}
             payload["confidence"] = round(self.confidence or 0.0, 6)
         return payload
-
-
-def _softmax(logits: list[float], temperature: float) -> list[float]:
-    scaled = [x / temperature for x in logits]
-    peak = max(scaled)
-    exps = [math.exp(x - peak) for x in scaled]
-    total = sum(exps)
-    return [e / total for e in exps]
 
 
 def confidence_from_probabilities(probabilities: list[float]) -> float:

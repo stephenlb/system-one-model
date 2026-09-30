@@ -13,6 +13,7 @@ import os
 from contextlib import asynccontextmanager
 
 from fastapi import FastAPI, HTTPException
+from fastapi.responses import RedirectResponse
 from pydantic import BaseModel, Field
 
 from .engine import (
@@ -86,6 +87,11 @@ async def lifespan(app: FastAPI):
 
 
 app = FastAPI(title="truetype.ai replica", version="0.1.0", lifespan=lifespan)
+
+
+@app.get("/", include_in_schema=False)
+def home() -> RedirectResponse:
+    return RedirectResponse(url="/ui")
 
 
 @app.get("/health")

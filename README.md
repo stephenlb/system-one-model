@@ -1,10 +1,108 @@
+---
+title: Truetype Jev Replica
+emoji: 🔤
+colorFrom: indigo
+colorTo: blue
+sdk: gradio
+sdk_version: 6.28.0
+python_version: 3.11
+app_file: app.py
+suggested_hardware: l40sx1
+models:
+  - google/gemma-4-12B
+preload_from_hub:
+  - google/gemma-4-12B
+startup_duration_timeout: 1h
+short_description: One-token typed decisions from Gemma 4 through a simple HTTP API
+---
+
 # Truetype.ai Jev Replica
 
 A local replica of the Jev TypeSafe AI System One API, tuned to match its latency
 while reading letter logits from Gemma 4 12B. `POST /v1/systemone` accepts and
 returns the original formats for all three supported question types.
 
+## Use the hosted API
+
+Once this repository is published as a Gradio Space, copy the Space's **direct
+URL** from its page (it looks like `https://OWNER-SPACE.hf.space`). Developers
+can make requests with Python's standard library; no package, model download,
+or local GPU is needed:
+
+```python
+import json
+from urllib.request import Request, urlopen
+
+url = "https://OWNER-SPACE.hf.space/v1/systemone"
+payload = {
+    "state": "I was charged twice for order A-104.",
+    "questions": {
+        "refund": {"type": "noul", "instructions": "Does the text request a refund?"},
+        "team": {
+            "type": "choice",
+            "instructions": "Which team should handle this?",
+            "criteria": {"billing": "Charges", "returns": "Refunds"},
+        },
+    },
+}
+request = Request(url, data=json.dumps(payload).encode(),
+                  headers={"Content-Type": "application/json"})
+with urlopen(request, timeout=120) as response:
+    print(json.load(response)["answers"])
+```
+
+For a reusable Python client, install the small package once. It has no
+third-party runtime dependencies and does not download model weights:
+
+```bash
+pip install git+https://github.com/stephenlb/truetype.ai-open.git
+```
+
+```python
+from truetype import TrueTypeClient
+
+client = TrueTypeClient("https://OWNER-SPACE.hf.space")
+result = client.system_one(
+    state="I was charged twice for order A-104.",
+    questions={"team": {
+        "type": "choice",
+        "instructions": "Which team should handle this?",
+        "criteria": {"billing": "Charges", "returns": "Refunds"},
+    }},
+)
+print(result["answers"]["team"]["choice"])
+```
+
+The Space UI is at `/ui`; interactive API docs are at `/docs`, and readiness is
+at `/health`.
+Its first start downloads the 23.9 GB Gemma weights; subsequent starts may
+download them again if the Space's temporary cache was cleared. A CPU Basic
+Space has too little memory for this model; select GPU hardware with enough
+memory, such as the suggested L40S. The YAML suggestion does not select
+hardware automatically.
+
+To publish, create a **Gradio Space**, select suitable GPU hardware in its
+Settings, then upload a clean copy of the release commit with the
+[Hugging Face CLI](https://huggingface.co/docs/huggingface_hub/guides/cli):
+
+```bash
+release_dir=$(mktemp -d)
+git archive HEAD | tar -x -C "$release_dir"
+hf upload OWNER/SPACE "$release_dir" . --repo-type space
+```
+
+Replace `OWNER/SPACE` with your Space ID. The root `README.md`, `app.py`, and
+`requirements.txt` use Hugging Face's managed Gradio runtime; no Docker image
+is built or required. Set `HF_TOKEN` as a Space Secret only if your model access
+requires it. No model weights are stored in this repository. After the Space
+builds and loads the model, check its direct URL's `/health` endpoint before
+sending requests.
+
 ![Jev Replica System One Model](media/jev-replica-system-one-model.jpg)
+
+Each prompt ends at `Answer:` with no trailing space, so the next token is the
+space-prefixed letter the engine reads; a trailing space had left the scored
+letters with 0.0000 probability mass. Contract tests guard this.
 
 Each answer uses one token. On CUDA and MPS, the engine replaces Gemma's
 vocabulary output projection with its 26 validated A-Z rows, so the forward
@@ -39,22 +137,22 @@ to a hosted model.
 
 <img width="1536" height="1024" alt="truetype-jev-replicat-architecture" src="https://github.com/user-attachments/assets/3d2b9dfb-beca-4e1d-aba0-98f4a517e7e8" />
 
-## Install
+## Run locally
 
 ```bash
 python -m venv .venv
 source .venv/bin/activate
-pip install -e .
+pip install -e ".[server]"
 ```
 
-The first load downloads `google/gemma-4-12B` (about 22GB) from Hugging
+The first load downloads `google/gemma-4-12B` (about 24GB) from Hugging
 Face and caches it in `~/.cache/huggingface`. Set `HF_TOKEN` if the repository
 requires authentication.
 
 For the test suite and Doom demos:
 
 ```bash
-pip install -e ".[test]" vizdoom
+pip install -e ".[server,test]" vizdoom
 ```
 
 ## Run the API
@@ -63,8 +161,8 @@ pip install -e ".[test]" vizdoom
 truetype-api                 # or: python -m truetype.api
 ```
 
-The server listens on `127.0.0.1:8000` by default. While the model loads,
-`/health` reports `status: starting`.
+The server listens on `127.0.0.1:8000` by default. Once the model has loaded,
+`/health` reports `status: ok`.
 
 ```bash
 curl -s localhost:8000/health
@@ -141,10 +239,10 @@ To require Apple GPU execution for the live-model tests, run
 `TRUETYPE_TEST_DEVICE=mps python -m pytest`. This fails immediately if PyTorch
 cannot access MPS and checks that the loaded model is on the MPS device.
 
-The suite has 102 tests: 50 fast deterministic contracts plus 50 functional
-cases against the live model (20 `noul`, 20 `choice`, and 10 `score`) and two
-live structural checks. The readout check requires the A-Z tokens to carry
-meaningful probability mass, while the cache check verifies capacity sizing.
+The suite has 117 tests. 66 are fast contracts that do not load the model,
+including the cache-capacity check. The other 51 use the live model: 50
+functional cases (20 `noul`, 20 `choice`, and 10 `score`) and a readout check
+that requires the A-Z tokens to carry meaningful probability mass.
 
 Run the suite from the repository root. The first run loads the 12B model and
 takes about a minute. Subsequent tests reuse the session model and take seconds.
@@ -161,6 +259,7 @@ python demo/game_demo.py        # 4-room text adventure
 python demo/web_nav_demo.py     # support-portal refund flow
 python demo/latency_bench.py    # prefix cache on/off, warm budget assertions
 python flappy/flappy_bird_demo.py --ascii   # Flappy Bird against a running game clock
+python mario/mario_demo.py       # Super Mario Bros. World 1-1 to the flagpole (pip install nes-py gym-super-mario-bros)
 ```
 
 Measured on an Apple Silicon Mac (bf16), from `demo/README.md`:
@@ -282,34 +381,3 @@ game tuning.
 `--ascii`. The module docstring records two prompt findings. An A-position bias
 caused every `coast` case to fail until the no-op action was listed first, and
 the model initially read the offsets instead of the verdict.
-
-## Docker
-
-The image installs the package, API dependencies, and PyTorch, but excludes
-ViZDoom, the demos, and the test suite. `TORCH_INDEX_URL` defaults to the CPU
-wheel index. Set it to a CUDA index for GPU builds.
-
-```bash
-docker build -t truetype-jev-replica .
-```
-
-CPU, model on a mounted Hugging Face cache:
-
-```bash
-docker run --rm -p 8000:8000 \
-  -v ~/.cache/huggingface:/home/app/.cache/huggingface \
-  truetype-jev-replica
-```
-
-NVIDIA GPU (needs the [NVIDIA Container Toolkit](https://docs.nvidia.com/datacenter/cloud-native/container-toolkit/latest/install-guide.html)):
-
-```bash
-docker run --rm --gpus all -p 8000:8000 \
-  -v ~/.cache/huggingface:/home/app/.cache/huggingface \
-  -e TYPESAFE_REPLICA_DEVICE=cuda \
-  truetype-jev-replica
-```
-
-The image binds `0.0.0.0` inside the container. The 12B model needs about 24GB of
-RAM in CPU mode. Mounting the Hugging Face cache keeps the 22GB model download
-out of the image.

@@ -1,0 +1,8 @@
+# Gradio itself is supplied by the managed Hugging Face Gradio runtime.
+torch
+transformers>=5.17.0
+fastapi
+uvicorn
+pydantic
+accelerate
+pillow
