@@ -374,3 +374,64 @@ game tuning.
 `--ascii`. The module docstring records two prompt findings. An A-position bias
 caused every `coast` case to fail until the no-op action was listed first, and
 the model initially read the offsets instead of the verdict.
+
+## Use the model with the Transformers library
+
+The model is also published as a standalone Hugging Face model repo: Gemma 4
+with its vocabulary head replaced by a 26-logit A-Z output layer. It loads with
+plain `transformers` (>=5.17) and `trust_remote_code=True`. It needs a GPU (or
+enough RAM) for the ~22 GB of weights.
+
+```bash
+pip install "transformers>=5.17" torch accelerate
+```
+
+```python
+from transformers import AutoModelForMultimodalLM, AutoTokenizer
+
+repo = "stephenlb/system-one-model"
+tokenizer = AutoTokenizer.from_pretrained(repo, trust_remote_code=True)
+model = AutoModelForMultimodalLM.from_pretrained(
+    repo, trust_remote_code=True, dtype="bfloat16", device_map="auto"
+)
+
+result = model.system_one(
+    tokenizer,
+    state="I was charged twice for order A-104.",
+    questions={
+        "refund": {"type": "noul", "instructions": "Does the text request a refund?"},
+        "team": {
+            "type": "choice",
+            "instructions": "Which team should handle this?",
+            "criteria": {"billing": "Charges", "returns": "Refunds"},
+        },
+    },
+)
+print(result["answers"])  # probabilities, confidence, and the chosen answer per question
+```
+
+Or through a `pipeline`:
+
+```python
+from transformers import pipeline
+
+pipe = pipeline("system-one", model=repo, trust_remote_code=True, dtype="bfloat16", device_map="auto")
+print(pipe({"state": "I was charged twice.", "questions": {...}}))
+```
+
+Both accept `noul`, `choice`, and `score` questions and return the same shape as
+`/v1/systemone`. Pass `temperature=` (default 0.7) to sharpen or soften the
+probabilities, or call `model.letter_logits(input_ids, attention_mask)` for the
+raw `[batch, 26]` logits (inputs must be left-padded).
+
+### Build and publish the model repo
+
+`hf-model/` holds the modeling code and build scripts (see `hf-model/README.md`
+for the model card).
+
+```bash
+python hf-model/build.py            # writes build/truetype_system_one (~22 GB)
+python hf-model/verify.py build/truetype_system_one   # parity vs the original head
+hf repos create <user>/system-one-model --type model
+hf upload <user>/system-one-model build/truetype_system_one .
+```
