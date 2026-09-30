@@ -9,12 +9,12 @@ tags:
   - typed-decisions
 ---
 
-# Truetype System One (Gemma 4 12B, 26-letter output layer)
+# System One Model (using Gemma 4 12B)
 
 `google/gemma-4-12B` with its 262k-token language-model head replaced by a
-26-row layer that outputs one logit per letter `A`-`Z`. The decoder is
+low dimentional vector that outputs one logit per answer. The decoder is
 unchanged. One forward pass gives the 26 logits; questions (`noul`, `choice`,
-`score`) are answered by softmax over the letters each question declares legal.
+`score`) are answered by softmax over the logits each question.
 
 Requires `transformers>=5.17`. The repo ships custom code, so pass
 `trust_remote_code=True`.
@@ -69,7 +69,7 @@ print(pipe({"state": "I was charged twice.", "questions": {...}}))
 probabilities per option. `score` returns the expected level over an ordered
 `criteria` list. Pass `temperature=` (default 0.7) to sharpen or soften.
 
-## Raw letter logits
+## Raw logits
 
 ```python
 enc = tokenizer(prompts, return_tensors="pt", padding=True)  # padding_side="left"

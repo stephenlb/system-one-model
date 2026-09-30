@@ -1,9 +1,3 @@
----
-title: Truetype Jev Replica System One Model
-sdk: gradio
-app_file: app.py
----
-
 # Truetype.ai Jev Replica
 
 A local-first replica of the Jev TypeSafe AI System One API,
@@ -13,19 +7,29 @@ that keeps only the 26 A-Z rows.
 `POST /v1/systemone` accepts and returns the original formats for
 all three supported question types.
 
-## Use the hosted API
+## Quick start: Transformers pipeline
 
-Once this repository is published as a Gradio Space, copy the Space's **direct
-URL** from its page (it looks like `https://stephenlb-system-one.hf.space`). Developers
-can make requests with Python's standard library; no package, model download,
-or local GPU is needed:
+The model is a standalone Hugging Face model repo: Gemma 4 with its vocabulary
+head replaced by a 26-logit A-Z output layer. The main way to use it is the
+`system-one` pipeline from plain `transformers` (>=5.17). It needs a GPU (or
+enough RAM) for the ~22 GB of weights.
+
+```bash
+pip install "transformers>=5.17" torch accelerate
+```
 
 ```python
-import json
-from urllib.request import Request, urlopen
+from transformers import pipeline
 
-url = "https://stephenlb-system-one.hf.space/v1/systemone"
-payload = {
+pipe = pipeline(
+    "system-one",
+    model="stephenlb/system-one-model",
+    trust_remote_code=True,
+    dtype="bfloat16",
+    device_map="auto",
+)
+
+result = pipe({
     "state": "I was charged twice for order A-104.",
     "questions": {
         "refund": {"type": "noul", "instructions": "Does the text request a refund?"},
@@ -34,38 +38,35 @@ payload = {
             "instructions": "Which team should handle this?",
             "criteria": {"billing": "Charges", "returns": "Refunds"},
         },
+        "severity": {
+            "type": "score",
+            "instructions": "How severe is the reported issue?",
+            "criteria": ["Cosmetic", "Degraded, workaround exists", "Blocking"],
+        },
     },
-}
-request = Request(url, data=json.dumps(payload).encode(),
-                  headers={"Content-Type": "application/json"})
-with urlopen(request, timeout=120) as response:
-    print(json.load(response)["answers"])
+})
+print(result["answers"])  # probabilities, confidence, and the chosen answer per question
 ```
 
-For a reusable Python client, install the small package once. It has no
-third-party runtime dependencies and does not download model weights:
+The pipeline accepts `noul`, `choice`, and `score` questions and returns the same
+`answers` shape as `/v1/systemone` (see the response example below). Pass
+`temperature=` (default 0.7) to sharpen or soften the probabilities, or
+`include_letter_logits=True` to also get the raw A-Z logits per question.
 
-```bash
-pip install git+https://github.com/stephenlb/truetype.ai-open.git
-```
+For lower-level control, load the model directly:
 
 ```python
-from truetype import TrueTypeClient
+from transformers import AutoModelForMultimodalLM, AutoTokenizer
 
-client = TrueTypeClient("https://stephenlb-system-one.hf.space")
-result = client.system_one(
-    state="I was charged twice for order A-104.",
-    questions={"team": {
-        "type": "choice",
-        "instructions": "Which team should handle this?",
-        "criteria": {"billing": "Charges", "returns": "Refunds"},
-    }},
+repo = "stephenlb/system-one-model"
+tokenizer = AutoTokenizer.from_pretrained(repo, trust_remote_code=True)
+model = AutoModelForMultimodalLM.from_pretrained(
+    repo, trust_remote_code=True, dtype="bfloat16", device_map="auto"
 )
-print(result["answers"]["team"]["choice"])
+result = model.system_one(tokenizer, state="...", questions={...})   # same output as the pipeline
+logits = model.letter_logits(input_ids, attention_mask)             # [batch, 26]; inputs left-padded
 ```
 
-The Space UI is at `/ui`; interactive API docs are at `/docs`, and readiness is
-at `/health`.
 Its first start downloads the 23.9 GB Gemma weights; subsequent starts may
 download them again if the Space's temporary cache was cleared. A CPU Basic
 Space has too little memory for this model; select GPU hardware with enough
@@ -375,56 +376,7 @@ game tuning.
 caused every `coast` case to fail until the no-op action was listed first, and
 the model initially read the offsets instead of the verdict.
 
-## Use the model with the Transformers library
-
-The model is also published as a standalone Hugging Face model repo: Gemma 4
-with its vocabulary head replaced by a 26-logit A-Z output layer. It loads with
-plain `transformers` (>=5.17) and `trust_remote_code=True`. It needs a GPU (or
-enough RAM) for the ~22 GB of weights.
-
-```bash
-pip install "transformers>=5.17" torch accelerate
-```
-
-```python
-from transformers import AutoModelForMultimodalLM, AutoTokenizer
-
-repo = "stephenlb/system-one-model"
-tokenizer = AutoTokenizer.from_pretrained(repo, trust_remote_code=True)
-model = AutoModelForMultimodalLM.from_pretrained(
-    repo, trust_remote_code=True, dtype="bfloat16", device_map="auto"
-)
-
-result = model.system_one(
-    tokenizer,
-    state="I was charged twice for order A-104.",
-    questions={
-        "refund": {"type": "noul", "instructions": "Does the text request a refund?"},
-        "team": {
-            "type": "choice",
-            "instructions": "Which team should handle this?",
-            "criteria": {"billing": "Charges", "returns": "Refunds"},
-        },
-    },
-)
-print(result["answers"])  # probabilities, confidence, and the chosen answer per question
-```
-
-Or through a `pipeline`:
-
-```python
-from transformers import pipeline
-
-pipe = pipeline("system-one", model=repo, trust_remote_code=True, dtype="bfloat16", device_map="auto")
-print(pipe({"state": "I was charged twice.", "questions": {...}}))
-```
-
-Both accept `noul`, `choice`, and `score` questions and return the same shape as
-`/v1/systemone`. Pass `temperature=` (default 0.7) to sharpen or soften the
-probabilities, or call `model.letter_logits(input_ids, attention_mask)` for the
-raw `[batch, 26]` logits (inputs must be left-padded).
-
-### Build and publish the model repo
+## Build and publish the model repo
 
 `hf-model/` holds the modeling code and build scripts (see `hf-model/README.md`
 for the model card).
