@@ -375,15 +375,3 @@ game tuning.
 `--ascii`. The module docstring records two prompt findings. An A-position bias
 caused every `coast` case to fail until the no-op action was listed first, and
 the model initially read the offsets instead of the verdict.
-
-## Build and publish the model repo
-
-`hf-model/` holds the modeling code and build scripts (see `hf-model/README.md`
-for the model card).
-
-```bash
-python hf-model/build.py            # writes build/truetype_system_one (~22 GB)
-python hf-model/verify.py build/truetype_system_one   # parity vs the original head
-hf repos create <user>/system-one-model --type model
-hf upload <user>/system-one-model build/truetype_system_one .
-```
