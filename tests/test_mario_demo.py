@@ -35,3 +35,4 @@ def test_baseline_clears_world_1_1():
     result = m.run_episode(None, max_decisions=600, window=None, quiet=True)
     assert result["result"] == "FLAG"
     assert result["x"] >= 3100
+    assert result["castle"]

@@ -1,4 +1,4 @@
-"""Gemma 4 plays the first level of Super Mario Bros. (NES).
+"""Blocks System One plays the first level of Super Mario Bros. (NES).
 
 The engine is a real NES emulator (``nes-py``, with the ROM bundled by
 ``gym-super-mario-bros``). Like ViZDoom it advances only when it is stepped, so a
@@ -26,6 +26,7 @@ does not hand the model raw pixel distances to interpret.
 Run (from the repo root):
     python mario/mario_demo.py                  # Gemma plays 1-1
     python mario/mario_demo.py --watch          # ...in a pygame window
+    python mario/mario_demo.py --sound          # ...with the game's audio
     python mario/mario_demo.py --baseline       # reference player, no model
     python mario/mario_demo.py --self-test      # check the questions, no game
     python mario/mario_demo.py --episodes 3 --max-decisions 900
@@ -34,7 +35,9 @@ Run (from the repo root):
 from __future__ import annotations
 
 import argparse
+import queue
 import sys
+import threading
 import time
 from dataclasses import dataclass
 from pathlib import Path
@@ -47,7 +50,7 @@ from common import LatencyLog, print_header
 # nes-py's raw joypad bitmask.
 RIGHT, LEFT, DOWN, UP, START, SELECT, B, A = 128, 64, 32, 16, 8, 4, 2, 1
 
-FRAMES_PER_DECISION = 4  # 60 fps NES: one decision is 67ms of game time
+FRAMES_PER_DECISION = 8  # 60 fps NES: one decision is 133ms of game time, longer than a decision takes
 LOOKAHEAD = 112  # pixels of level scanned for the next hazard
 TILE = 16
 
@@ -57,9 +60,9 @@ FRIENDLY_ENEMY_TYPES = {0x2E, 0x2F, 0x30, 0x31}
 # Takeoff windows: a hazard this close (pixels between Mario's leading edge and
 # the hazard) is inside the window where a jump clears it. Measured with
 # ``--baseline`` on World 1-1.
-PIT_WINDOW = 14
-ENEMY_WINDOW = 60
-WALL_WINDOW_BASE = 20
+PIT_WINDOW = 20
+ENEMY_WINDOW = 50
+WALL_WINDOW_BASE = 30
 WALL_WINDOW_PER_TILE = 12
 
 
@@ -93,10 +96,6 @@ class View:
     hazard: Hazard | None
 
 
-def _ram(env):
-    return env.unwrapped.ram
-
-
 def tile_solid(ram, world_x: int, screen_y: int) -> bool:
     row = (screen_y - 32) // TILE
     if not 0 <= row < 13:
@@ -105,8 +104,7 @@ def tile_solid(ram, world_x: int, screen_y: int) -> bool:
     return ram[0x500 + page * 208 + row * 16 + (world_x % 256) // TILE] != 0
 
 
-def read_view(env) -> View:
-    ram = _ram(env)
+def read_view(ram) -> View:
     world_x = int(ram[0x6D]) * 256 + int(ram[0x86])
     height = 16 if ram[0x754] == 1 else 32
     feet_y = int(ram[0xCE]) + 16 + height
@@ -264,12 +262,163 @@ def self_test(service) -> bool:
 
 
 # --------------------------------------------------------------------------- loop
-def make_env():
-    import gym_super_mario_bros as smb
+class Emulator:
+    """One NES frame at a time, with RAM, the screen and (optionally) audio.
 
-    env = smb.make("SuperMarioBros-1-1-v0")
-    env.reset()
-    return env
+    The default backend is ``nes-py``: fast and headless, but it does not emulate
+    the sound chip. ``sound=True`` uses ``stable-retro`` (FCEUmm core) instead,
+    which does. Both run the same ROM and expose the same RAM map.
+    """
+
+    # nes-py bit -> stable-retro button index (B, -, SELECT, START, UP, DOWN, LEFT, RIGHT, A)
+    _RETRO_BUTTONS = {B: 0, SELECT: 2, START: 3, UP: 4, DOWN: 5, LEFT: 6, RIGHT: 7, A: 8}
+
+    def __init__(self, sound: bool = False) -> None:
+        self.sound = sound
+        if sound:
+            import numpy as np
+            import stable_retro as retro
+
+            self._np = np
+            install_retro_rom()
+            self._env = retro.make("SuperMarioBros-Nes-v0", render_mode=None)
+            self._env.reset()
+            self.audio_rate = int(self._env.em.get_audio_rate())
+        else:
+            import gym_super_mario_bros as smb
+
+            self._env = smb.make("SuperMarioBros-1-1-v0")
+            self._env.reset()
+            self.audio_rate = 0
+
+    @property
+    def ram(self):
+        return self._env.get_ram() if self.sound else self._env.unwrapped.ram
+
+    @property
+    def screen(self):
+        return self._env.em.get_screen() if self.sound else self._env.unwrapped.screen
+
+    def frame(self, mask: int):
+        """Advance one frame with a nes-py style button mask; return its audio."""
+        if not self.sound:
+            self._env.unwrapped._frame_advance(mask)
+            return None
+        pad = self._np.zeros(9, dtype=self._np.int8)
+        for bit, index in self._RETRO_BUTTONS.items():
+            pad[index] = 1 if mask & bit else 0
+        self._env.step(pad)
+        return self._env.em.get_audio()
+
+    def close(self) -> None:
+        self._env.close()
+
+
+def install_retro_rom() -> None:
+    """Give stable-retro the ROM that ``gym-super-mario-bros`` already ships.
+
+    The bundled dump has a different checksum from the one stable-retro's importer
+    accepts, so ``retro.import`` skips it; loading it directly works.
+    """
+    import shutil
+
+    import gym_super_mario_bros
+    import stable_retro
+
+    target = Path(stable_retro.data.path()) / "stable" / "SuperMarioBros-Nes-v0" / "rom.nes"
+    if not target.exists():
+        source = Path(gym_super_mario_bros.__file__).parent / "_roms" / "super-mario-bros.nes"
+        shutil.copy(source, target)
+
+
+def make_env(sound: bool = False) -> Emulator:
+    return Emulator(sound)
+
+
+def mario_status(ram) -> dict:
+    """What the environment wrapper used to report, read straight from RAM."""
+    state = int(ram[0x0E])
+    return {
+        "x": int(ram[0x6D]) * 256 + int(ram[0x86]),
+        "flag": state == 4,  # sliding down the flagpole
+        "dead": state in (6, 0x0B) or int(ram[0xB5]) > 1,  # dying, or below the screen
+        "time": int(ram[0x7F8]) * 100 + int(ram[0x7F9]) * 10 + int(ram[0x7FA]),
+    }
+
+
+GAIN = 3
+
+
+class Speaker:
+    """Streams the emulator's audio through pygame.mixer at its native speed.
+
+    Sound is smooth only if the emulator stays ahead of the speaker. A decision
+    costs ~110ms of wall time, so a block must hold at least that much game time:
+    ``FRAMES_PER_DECISION`` is 8 (133ms). The mixer has one playing slot and one
+    queued slot; ``flush`` waits for the queued slot to free up, which paces the
+    game to real time when it would otherwise run ahead (``--baseline``, the flag
+    walk) and does nothing when the model is the bottleneck.
+    """
+
+    def __init__(self, rate: int) -> None:
+        import numpy as np
+        import pygame
+
+        self.np = np
+        # pygame.init() (the --watch window) opens the mixer at 44100 Hz, and a
+        # second init is then a no-op: the samples would play 37% too fast.
+        pygame.mixer.quit()
+        pygame.mixer.init(frequency=rate, size=-16, channels=2, buffer=512)
+        got = pygame.mixer.get_init()
+        if got is None or got[0] != rate:
+            raise RuntimeError(f"audio mixer opened at {got}, needed {rate} Hz stereo")
+        self.mixer = pygame.mixer
+        self.channel = pygame.mixer.Channel(0)
+        self.rate = rate
+        self.pending: list = []
+        self.underruns = 0
+        self.blocks: queue.Queue = queue.Queue()
+        self.thread = threading.Thread(target=self._feed, daemon=True)
+        self.thread.start()
+
+    def add(self, samples) -> None:
+        self.pending.append(samples)
+
+    def flush(self) -> None:
+        """Hand the frames gathered since the last flush to the audio thread."""
+        if not self.pending:
+            return
+        np = self.np
+        block = np.concatenate(self.pending)
+        self.pending = []
+        # FCEUmm's output peaks around a fifth of full scale; bring it up.
+        block = np.clip(block.astype(np.int32) * GAIN, -32768, 32767).astype(np.int16)
+        self.blocks.put(block.tobytes())
+
+    def _feed(self) -> None:
+        """Keep the mixer's playing and queued slots full, off the video's clock."""
+        while True:
+            data = self.blocks.get()
+            if data is None:
+                return
+            while self.channel.get_queue() is not None:
+                time.sleep(0.002)
+            sound = self.mixer.Sound(buffer=data)
+            if self.channel.get_busy():
+                self.channel.queue(sound)
+            else:
+                if self.started:
+                    self.underruns += 1  # the speaker ran dry before this block arrived
+                self.channel.play(sound)
+                self.started = True
+
+    started = False
+
+    def close(self) -> None:
+        self.blocks.put(None)
+        self.thread.join()
+        time.sleep(0.4)  # let the last block finish playing
+        self.mixer.quit()
 
 
 class Window:
@@ -281,15 +430,16 @@ class Window:
         self.pg = pygame
         pygame.init()
         self.size = (256 * 3, 240 * 3 + 40)
+        self.view = (256 * 3, 240 * 3)
         self.screen = pygame.display.set_mode(self.size)
-        pygame.display.set_caption("Gemma 4 plays Super Mario Bros. 1-1")
+        pygame.display.set_caption("Blocks System One plays Super Mario Bros. 1-1")
         self.font = pygame.font.SysFont("menlo", 16)
 
     def draw(self, frame, phase: str, action: str, confidence: float, ms: float) -> None:
         pg = self.pg
         pg.event.pump()
         surface = pg.surfarray.make_surface(frame.swapaxes(0, 1))
-        self.screen.blit(pg.transform.scale(surface, (256 * 3, 240 * 3)), (0, 0))
+        self.screen.blit(pg.transform.scale(surface, self.view), (0, 0))
         self.screen.fill((20, 20, 30), (0, 240 * 3, self.size[0], 40))
         label = f"{phase:<6} -> {action:<8} conf {confidence:.2f}   {ms:.0f}ms"
         self.screen.blit(self.font.render(label, True, (240, 240, 240)), (10, 240 * 3 + 10))
@@ -299,22 +449,105 @@ class Window:
         self.pg.quit()
 
 
-def run_episode(service, *, max_decisions: int, window: Window | None, quiet: bool) -> dict:
-    env = make_env()
+CASTLE_X = 3260  # World 1-1: Mario stops at the castle door at x=3266
+
+
+class Pacer:
+    """Holds the game to 60 frames per second of wall time."""
+
+    def __init__(self) -> None:
+        self.next = time.perf_counter()
+
+    def tick(self) -> None:
+        self.next += 1 / 60
+        delay = self.next - time.perf_counter()
+        if delay > 0:
+            time.sleep(delay)
+        elif delay < -0.1:  # stalled (a slow decision): resume from now, do not sprint
+            self.next = time.perf_counter()
+
+
+@dataclass
+class Block:
+    """FRAMES_PER_DECISION emulated frames waiting to be shown and heard."""
+
+    frames: list
+    audio: list
+    phase: str
+    action: str
+    confidence: float
+    ms: float
+
+
+def present(block: Block, window: Window | None, speaker: Speaker | None, pacer: Pacer | None) -> None:
+    """Show a block at 60fps and queue its sound. Runs while the next decision is made."""
+    if speaker is not None:
+        for samples in block.audio:
+            speaker.add(samples)
+        speaker.flush()
+    for frame in block.frames:
+        if window is not None:
+            window.draw(frame, block.phase, block.action, block.confidence, block.ms)
+        if pacer is not None:
+            pacer.tick()
+
+
+def walk_to_castle(env: Emulator, window: Window | None, speaker: Speaker | None = None,
+                   pacer: Pacer | None = None, *, max_frames: int = 600) -> bool:
+    """Play out the flagpole sequence until Mario is at the castle door.
+
+    The episode is won when the flag is grabbed, but the game is not over: Mario
+    slides down the pole and walks toward the castle if RIGHT is held. No
+    decisions are made here, so nothing is timed.
+    """
+    still = 0
+    last_x = -1
+    for i in range(max_frames):
+        audio = env.frame(RIGHT)
+        if speaker is not None and audio is not None:
+            speaker.add(audio)
+            if i % 4 == 3:
+                speaker.flush()
+        if window is not None:
+            window.draw(env.screen, "flag", "walk", 1.0, 0.0)
+        if pacer is not None:
+            pacer.tick()
+        x = mario_status(env.ram)["x"]
+        still = still + 1 if x == last_x else 0
+        last_x = x
+        if x >= CASTLE_X and still >= 20:
+            if speaker is not None:
+                speaker.flush()
+            return True
+    return False
+
+
+def run_episode(service, *, max_decisions: int, window: Window | None, quiet: bool,
+                sound: bool = False) -> dict:
+    """Play one episode.
+
+    Each block of frames is emulated at once (the emulator is far faster than the
+    game clock), then shown at 60fps while the next decision is computed on a
+    worker thread. The decision needs only the state at the end of the block, which
+    already exists, so overlapping the two adds no delay to the game and hides the
+    ~110ms decision inside the 133ms of playback. Without a window or sound the
+    game runs flat out.
+    """
+    from concurrent.futures import ThreadPoolExecutor
+
+    env = make_env(sound)
+    speaker = Speaker(env.audio_rate) if sound else None
+    pacer = Pacer() if (sound or window is not None) else None
     latency = {phase: LatencyLog(phase) for phase in CONTRACT}
     action_mix: dict[str, int] = {}
     decision_wall = 0.0
     a_held = False
-    info: dict = {}
+    status = mario_status(env.ram)
     step = 0
     result = "out of decisions"
+    castle = False
 
-    while step < max_decisions:
-        step += 1
-        view = read_view(env)
-        phase = phase_of(view)
-        state_text = ground_state(view.hazard) if phase == "ground" else air_state(view)
-
+    def decide(view: View, phase: str, state_text: str):
         started = time.perf_counter()
         if service is None:
             action, confidence = baseline_action(view), 1.0
@@ -323,41 +556,85 @@ def run_episode(service, *, max_decisions: int, window: Window | None, quiet: bo
                 state=state_text, questions={phase: CONTRACT[phase]}
             ).answers[phase]
             action, confidence = answer["choice"], answer["confidence"]
-        decision_wall += time.perf_counter() - started
-        ms = latency[phase].record(started)
-        action_mix[action] = action_mix.get(action, 0) + 1
+        return action, confidence, started, time.perf_counter() - started
 
-        press_a = action in ("jump", "hold")
-        for frame in range(FRAMES_PER_DECISION):
-            # A jump needs a fresh press: let go for one frame after a landing.
-            a_now = press_a and not (frame == 0 and a_held and not view.airborne)
-            _, _, terminated, truncated, info = env.step(RIGHT | B | (A if a_now else 0))
-            a_held = a_now
+    if sound:
+        # stable-retro starts on the title screen; press START to begin World 1-1.
+        for i in range(240):
+            audio = env.frame(START if 30 <= i < 40 else 0)
+            speaker.add(audio)
+            if i % 4 == 3:
+                speaker.flush()
             if window is not None:
-                window.draw(env.unwrapped.screen, phase, action, confidence, ms)
-            if terminated or truncated or info.get("flag_get"):
+                window.draw(env.screen, "title", "start", 1.0, 0.0)
+            pacer.tick()
+            if int(env.ram[0x0770]) == 1 and int(env.ram[0x0E]) == 8 and i > 100:
                 break
 
-        if not quiet:
-            h = view.hazard
-            note = f"{h.kind} {h.distance}px" if h else "clear"
-            print(
-                f"{step:4d}  {phase:<6} {action:<8} conf={confidence:.2f} {ms:6.1f}ms  "
-                f"x={info['x_pos']:4d}  | {note}"
-            )
+    shown: Block | None = None  # the block on screen while the next decision runs
+    with ThreadPoolExecutor(max_workers=1) as pool:
+        while step < max_decisions:
+            step += 1
+            view = read_view(env.ram)
+            phase = phase_of(view)
+            state_text = ground_state(view.hazard) if phase == "ground" else air_state(view)
+            future = pool.submit(decide, view, phase, state_text)
 
-        if info.get("flag_get"):
+            if shown is not None:
+                present(shown, window, speaker, pacer)
+                shown = None
+            action, confidence, started, elapsed = future.result()
+            decision_wall += elapsed
+            ms = latency[phase].record(started)
+            action_mix[action] = action_mix.get(action, 0) + 1
+
+            press_a = action in ("jump", "hold")
+            frames: list = []
+            audio_blocks: list = []
+            for frame in range(FRAMES_PER_DECISION):
+                # A jump needs a fresh press: let go for one frame after a landing.
+                a_now = press_a and not (frame == 0 and a_held and not view.airborne)
+                audio = env.frame(RIGHT | B | (A if a_now else 0))
+                a_held = a_now
+                if audio is not None:
+                    audio_blocks.append(audio)
+                if window is not None:
+                    frames.append(env.screen.copy())
+                status = mario_status(env.ram)
+                if status["flag"] or status["dead"]:
+                    break
+            shown = Block(frames, audio_blocks, phase, action, confidence, ms)
+
+            if not quiet:
+                h = view.hazard
+                note = f"{h.kind} {h.distance}px" if h else "clear"
+                print(
+                    f"{step:4d}  {phase:<6} {action:<8} conf={confidence:.2f} {ms:6.1f}ms  "
+                    f"x={status['x']:4d}  | {note}"
+                )
+
+            if status["flag"] or status["dead"] or status["time"] == 0:
+                break
+
+        if shown is not None:
+            present(shown, window, speaker, pacer)
+        if status["flag"]:
             result = "FLAG"
-            break
-        if info.get("is_dead") or info.get("is_dying") or info.get("death") or info.get("time", 1) == 0:
+            castle = walk_to_castle(env, window, speaker, pacer)
+        elif status["dead"] or status["time"] == 0:
             result = "died"
-            break
 
+    underruns = 0
+    if speaker is not None:
+        underruns = speaker.underruns
+        speaker.close()
     env.close()
     return {
         "result": result,
+        "castle": castle,
+        "underruns": underruns,
         "decisions": step,
-        "x": info.get("x_pos", 0),
+        "x": status["x"],
         "game_seconds": step * FRAMES_PER_DECISION / 60,
         "decision_wall": decision_wall,
         "action_mix": action_mix,
@@ -366,10 +643,12 @@ def run_episode(service, *, max_decisions: int, window: Window | None, quiet: bo
 
 
 def main() -> None:
-    parser = argparse.ArgumentParser(description="Gemma 4 plays Super Mario Bros. 1-1.")
+    parser = argparse.ArgumentParser(description="Blocks System One plays Super Mario Bros. 1-1.")
     parser.add_argument("--max-decisions", type=int, default=1200)
     parser.add_argument("--episodes", type=int, default=1)
     parser.add_argument("--watch", action="store_true", help="show the game in a pygame window")
+    parser.add_argument("--sound", action="store_true",
+                        help="play the game audio (uses stable-retro instead of nes-py)")
     parser.add_argument("--baseline", action="store_true", help="play with the criteria rule")
     parser.add_argument("--quiet", action="store_true", help="summary only")
     parser.add_argument("--self-test", action="store_true", help="check the questions and exit")
@@ -402,10 +681,12 @@ def main() -> None:
                 max_decisions=args.max_decisions,
                 window=window,
                 quiet=args.quiet,
+                sound=args.sound,
             )
             results.append(r)
-            print(f"    {r['result']}: x={r['x']} decisions={r['decisions']} "
-                  f"game_time={r['game_seconds']:.1f}s mix={r['action_mix']}\n")
+            print(f"    {r['result']}{' + castle' if r['castle'] else ''}: x={r['x']} decisions={r['decisions']} "
+                  f"game_time={r['game_seconds']:.1f}s mix={r['action_mix']}"
+                  + (f" audio_underruns={r['underruns']}" if args.sound else "") + "\n")
     except KeyboardInterrupt:
         print("\ninterrupted")
     finally:

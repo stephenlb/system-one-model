@@ -259,7 +259,8 @@ python demo/game_demo.py        # 4-room text adventure
 python demo/web_nav_demo.py     # support-portal refund flow
 python demo/latency_bench.py    # prefix cache on/off, warm budget assertions
 python flappy/flappy_bird_demo.py --ascii   # Flappy Bird against a running game clock
-python mario/mario_demo.py       # Super Mario Bros. World 1-1 to the flagpole (pip install nes-py gym-super-mario-bros)
+python mario/mario_demo.py       # Super Mario Bros. World 1-1 to the castle (pip install nes-py gym-super-mario-bros)
+python mario/mario_demo.py --sound --watch   # ...with the game's audio (also pip install stable-retro)
 ```
 
 Measured on an Apple Silicon Mac (bf16), from `demo/README.md`:
