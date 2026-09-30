@@ -486,7 +486,7 @@ def present(block: Block, window: Window | None, speaker: Speaker | None, pacer:
             speaker.add(samples)
         speaker.flush()
     for frame in block.frames:
-        if window is not None:
+        if window is not None and frame is not None:
             window.draw(frame, block.phase, block.action, block.confidence, block.ms)
         if pacer is not None:
             pacer.tick()
@@ -598,8 +598,8 @@ def run_episode(service, *, max_decisions: int, window: Window | None, quiet: bo
                 a_held = a_now
                 if audio is not None:
                     audio_blocks.append(audio)
-                if window is not None:
-                    frames.append(env.screen.copy())
+                if pacer is not None:  # one entry per frame keeps the 60fps clock ticking
+                    frames.append(env.screen.copy() if window is not None else None)
                 status = mario_status(env.ram)
                 if status["flag"] or status["dead"]:
                     break

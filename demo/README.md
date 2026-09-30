@@ -28,6 +28,7 @@ python demo/doom_demo.py       # real Doom, 3 arena scenarios (add --watch to se
 python doom/doom_full_game_demo.py  # real Doom, a full level (see below)
 python flappy/flappy_bird_demo.py   # Flappy Bird at ~1.2x real time (add --ascii)
 python mario/mario_demo.py          # Super Mario Bros. World 1-1, flag reached (add --watch)
+python tetris/tetris_demo.py        # Tetris, 10 lines cleared (add --sound --watch)
 python demo/game_demo.py       # text-adventure game
 python demo/web_nav_demo.py    # web-page navigation
 python demo/batch_demo.py      # 5 questions in 1 request
