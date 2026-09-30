@@ -1,26 +1,11 @@
----
-title: Truetype Jev Replica
-emoji: 🔤
-colorFrom: indigo
-colorTo: blue
-sdk: gradio
-sdk_version: 6.28.0
-python_version: 3.11
-app_file: app.py
-suggested_hardware: l40sx1
-models:
-  - google/gemma-4-12B
-preload_from_hub:
-  - google/gemma-4-12B
-startup_duration_timeout: 1h
-short_description: One-token typed decisions from Gemma 4 through a simple HTTP API
----
-
 # Truetype.ai Jev Replica
 
-A local replica of the Jev TypeSafe AI System One API, tuned to match its latency
-while reading letter logits from Gemma 4 12B. `POST /v1/systemone` accepts and
-returns the original formats for all three supported question types.
+A local-first replica of the Jev TypeSafe AI System One API,
+tuned to match its latency and accuracy.
+We used a gemma encoder and swaped existing LM head for a smaller copy
+that keeps only the 26 A-Z rows.
+`POST /v1/systemone` accepts and returns the original formats for
+all three supported question types.
 
 ## Use the hosted API
 
