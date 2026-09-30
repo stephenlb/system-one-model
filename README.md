@@ -1,3 +1,9 @@
+---
+title: Truetype Jev Replica System One Model
+sdk: gradio
+app_file: app.py
+---
+
 # Truetype.ai Jev Replica
 
 A local-first replica of the Jev TypeSafe AI System One API,
@@ -10,7 +16,7 @@ all three supported question types.
 ## Use the hosted API
 
 Once this repository is published as a Gradio Space, copy the Space's **direct
-URL** from its page (it looks like `https://OWNER-SPACE.hf.space`). Developers
+URL** from its page (it looks like `https://stephenlb-truetype.hf.space`). Developers
 can make requests with Python's standard library; no package, model download,
 or local GPU is needed:
 
@@ -18,7 +24,7 @@ or local GPU is needed:
 import json
 from urllib.request import Request, urlopen
 
-url = "https://OWNER-SPACE.hf.space/v1/systemone"
+url = "https://stephenlb-truetype.hf.space/v1/systemone"
 payload = {
     "state": "I was charged twice for order A-104.",
     "questions": {
@@ -46,7 +52,7 @@ pip install git+https://github.com/stephenlb/truetype.ai-open.git
 ```python
 from truetype import TrueTypeClient
 
-client = TrueTypeClient("https://OWNER-SPACE.hf.space")
+client = TrueTypeClient("https://stephenlb-truetype.hf.space")
 result = client.system_one(
     state="I was charged twice for order A-104.",
     questions={"team": {
@@ -73,10 +79,10 @@ Settings, then upload a clean copy of the release commit with the
 ```bash
 release_dir=$(mktemp -d)
 git archive HEAD | tar -x -C "$release_dir"
-hf upload OWNER/SPACE "$release_dir" . --repo-type space
+hf upload stephenlb/truetype "$release_dir" . --repo-type space
 ```
 
-Replace `OWNER/SPACE` with your Space ID. The root `README.md`, `app.py`, and
+Replace `stephenlb/truetype` with your Space ID if you use a different name. The root `README.md`, `app.py`, and
 `requirements.txt` use Hugging Face's managed Gradio runtime; no Docker image
 is built or required. Set `HF_TOKEN` as a Space Secret only if your model access
 requires it. No model weights are stored in this repository. After the Space
