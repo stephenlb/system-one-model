@@ -17,13 +17,13 @@ that outputs one logit per answer. The forward pass gives the 26 logits.
 Questions (`noul`, `choice`, `score`) are answered by softmax
 over the logits for each question.
 
-## Super Mario Bros. World 1-1 played by the model.
-
-<video controls width="640" src="https://huggingface.co/stephenlb/system-one-model/resolve/main/mario-world-1.mp4"></video>
-
 ## Doom played by the model.
 
 <video controls width="640" src="https://huggingface.co/stephenlb/system-one-model/resolve/main/typesafe-replica-doom-game-only.mp4"></video>
+
+## Super Mario Bros. World 1-1 played by the model.
+
+<video controls width="640" src="https://huggingface.co/stephenlb/system-one-model/resolve/main/mario-world-1.mp4"></video>
 
 ## Flappy Bird played by the model.
 
@@ -259,7 +259,7 @@ enc = tokenizer(prompts, return_tensors="pt", padding=True)  # padding_side="lef
 logits = model.letter_logits(enc.input_ids, enc.attention_mask)  # [batch, 26]
 ```
 
-# [Blocks.ai](https://blocks.ai)
+# Blocks.ai
 
 We needed an open weight model that offered the capabilities of Jev System One Model.
 Most common AI Agents require decisions making.
@@ -269,6 +269,9 @@ Whether connecting agents to users in your organization or making
 your agents available for public use,
 Blocks.ai makes your agents securely discoverable and callable
 by everyone who needs them most.
+[We Rebuilt Jev's API on an Open Model and Used It to Play Doom](https://blocks.ai/blog/jev-open-model-doom).
+TypeSafe AI's Jev turns unstructured input into typed decisions and probabilities.
+We rebuilt the API with an open model, reached 113ms median latency on an M4 Mac, and used it to play Doom.
 
 # Github Source System One Model
 
