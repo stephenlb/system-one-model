@@ -262,4 +262,6 @@ your agents available for public use,
 Blocks.ai makes your agents securely discoverable and callable
 by everyone who needs them most.
 
-Source and prompt format: https://github.com/stephenlb/truetype.ai-open
+# Github Source System One Model
+
+https://github.com/stephenlb/truetype.ai-open
