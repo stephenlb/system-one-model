@@ -6,9 +6,7 @@ that outputs one logit per answer. The forward pass gives the 26 logits.
 Questions (`noul`, `choice`, `score`) are answered by softmax
 over the logits for each question.
 
-## Super Mario Bros. World 1-1 played by the model.
-
-[Watch the Mario demo](media/mario-world-1.mp4)
+<img width="3008" height="1376" alt="system-one-model" src="https://github.com/user-attachments/assets/d5f5daf0-09c8-4dba-ac7e-b3599e2036d0" />
 
 ## Quick start: Transformers pipeline
 
@@ -70,8 +68,6 @@ result = model.system_one(tokenizer, state="...", questions={...})   # same outp
 logits = model.letter_logits(input_ids, attention_mask)             # [batch, 26]; inputs left-padded
 ```
 
-![Jev Replica System One Model](media/jev-replica-system-one-model.jpg)
-
 Each prompt ends at `Answer:` with no trailing space, so the next token is the
 space-prefixed letter the engine reads; a trailing space had left the scored
 letters with 0.0000 probability mass. Contract tests guard this.
@@ -81,12 +77,17 @@ vocabulary output projection with its 26 validated A-Z rows, so the forward
 pass emits only letter logits. It applies the temperature-0.7 softmax over the
 letters allowed by the question on the accelerator, then transfers only final
 answer values for JSON serialization. Unsupported model-head implementations
-fall back safely to a full-vocabulary GPU gather. The code in `src/` does not
-call `generate()`, sample tokens, or run a decode loop. Set
-`TYPESAFE_REPLICA_RESTRICT_OUTPUT_TO_LETTERS=0` to retain the full head for
-parity diagnostics.
+fall back safely to a full-vocabulary GPU gather.
+
+## Doom played by the model.
 
 https://github.com/user-attachments/assets/c24ad3fd-044c-46b9-8862-46b70dd8e201
+
+## Super Mario Bros. World 1-1 played by the model.
+
+https://github.com/user-attachments/assets/300e9413-68e2-48e5-a3cb-e96785adaee3
+
+## Flappy bird played by the model.
 
 https://github.com/user-attachments/assets/50a48f64-c483-4b1d-8956-7fb430837a60
 
