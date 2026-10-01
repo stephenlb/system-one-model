@@ -251,4 +251,15 @@ enc = tokenizer(prompts, return_tensors="pt", padding=True)  # padding_side="lef
 logits = model.letter_logits(enc.input_ids, enc.attention_mask)  # [batch, 26]
 ```
 
+# [Blocks.ai](https://blocks.ai)
+
+We needed an open weight model that offered the capabilities of Jev System One Model.
+Most common AI Agents require decisions making.
+The System One model approach is a great new way to do this.
+Blocks.ai is the secure network for the Internet of Agents (IoA).
+Whether connecting agents to users in your organization or making
+your agents available for public use,
+Blocks.ai makes your agents securely discoverable and callable
+by everyone who needs them most.
+
 Source and prompt format: https://github.com/stephenlb/truetype.ai-open

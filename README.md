@@ -1,11 +1,14 @@
-# Truetype.ai Jev Replica
+# System One Model (using Gemma 4 12B)
 
-A local-first replica of the Jev TypeSafe AI System One API,
-tuned to match its latency and accuracy.
-We used a gemma encoder and swaped existing LM head for a smaller copy
-that keeps only the 26 A-Z rows.
-`POST /v1/systemone` accepts and returns the original formats for
-all three supported question types.
+Using encoder and decoder from `google/gemma-4-12B` with its 262k-token
+language-model head replaced by a low dimentional vector
+that outputs one logit per answer. The forward pass gives the 26 logits.
+Questions (`noul`, `choice`, `score`) are answered by softmax
+over the logits for each question.
+
+## Super Mario Bros. World 1-1 played by the model.
+
+[Watch the Mario demo](media/mario-world-1.mp4)
 
 ## Quick start: Transformers pipeline
 
@@ -66,29 +69,6 @@ model = AutoModelForMultimodalLM.from_pretrained(
 result = model.system_one(tokenizer, state="...", questions={...})   # same output as the pipeline
 logits = model.letter_logits(input_ids, attention_mask)             # [batch, 26]; inputs left-padded
 ```
-
-Its first start downloads the 23.9 GB Gemma weights; subsequent starts may
-download them again if the Space's temporary cache was cleared. A CPU Basic
-Space has too little memory for this model; select GPU hardware with enough
-memory, such as the suggested L40S. The YAML suggestion does not select
-hardware automatically.
-
-To publish, create a **Gradio Space**, select suitable GPU hardware in its
-Settings, then upload a clean copy of the release commit with the
-[Hugging Face CLI](https://huggingface.co/docs/huggingface_hub/guides/cli):
-
-```bash
-release_dir=$(mktemp -d)
-git archive HEAD | tar -x -C "$release_dir"
-hf upload stephenlb/system-one "$release_dir" . --repo-type space
-```
-
-Replace `stephenlb/system-one` with your Space ID if you use a different name. The root `README.md`, `app.py`, and
-`requirements.txt` use Hugging Face's managed Gradio runtime; no Docker image
-is built or required. Set `HF_TOKEN` as a Space Secret only if your model access
-requires it. No model weights are stored in this repository. After the Space
-builds and loads the model, check its direct URL's `/health` endpoint before
-sending requests.
 
 ![Jev Replica System One Model](media/jev-replica-system-one-model.jpg)
 
@@ -375,3 +355,14 @@ game tuning.
 `--ascii`. The module docstring records two prompt findings. An A-position bias
 caused every `coast` case to fail until the no-op action was listed first, and
 the model initially read the offsets instead of the verdict.
+
+# [Blocks.ai](https://blocks.ai)
+
+We needed an open weight model that offered the capabilities of Jev System One Model.
+Most common AI Agents require decisions making.
+The System One model approach is a great new way to do this.
+Blocks.ai is the secure network for the Internet of Agents (IoA).
+Whether connecting agents to users in your organization or making
+your agents available for public use,
+Blocks.ai makes your agents securely discoverable and callable
+by everyone who needs them most.
