@@ -1,0 +1,263 @@
+{
+ "system": "strands",
+ "load_s": 45.76956796646118,
+ "noul": [
+  {
+   "p": 0.8732,
+   "ok": true,
+   "brier": 0.016078240000000008
+  },
+  {
+   "p": 0.8978,
+   "ok": true,
+   "brier": 0.010444839999999992
+  },
+  {
+   "p": 0.1646,
+   "ok": true,
+   "brier": 0.027093159999999998
+  },
+  {
+   "p": 0.8188,
+   "ok": true,
+   "brier": 0.03283344000000001
+  },
+  {
+   "p": 0.1771,
+   "ok": true,
+   "brier": 0.03136441
+  },
+  {
+   "p": 0.8572,
+   "ok": true,
+   "brier": 0.020391840000000012
+  },
+  {
+   "p": 0.1958,
+   "ok": true,
+   "brier": 0.03833764
+  },
+  {
+   "p": 0.9019,
+   "ok": true,
+   "brier": 0.009623609999999993
+  },
+  {
+   "p": 0.2004,
+   "ok": true,
+   "brier": 0.04016016
+  },
+  {
+   "p": 0.8275,
+   "ok": true,
+   "brier": 0.029756249999999995
+  },
+  {
+   "p": 0.2122,
+   "ok": true,
+   "brier": 0.04502884
+  },
+  {
+   "p": 0.7176,
+   "ok": true,
+   "brier": 0.07974975999999999
+  },
+  {
+   "p": 0.2171,
+   "ok": true,
+   "brier": 0.04713240999999999
+  },
+  {
+   "p": 0.8166,
+   "ok": true,
+   "brier": 0.03363556
+  },
+  {
+   "p": 0.2125,
+   "ok": true,
+   "brier": 0.045156249999999995
+  }
+ ],
+ "choice": [
+  {
+   "pred": "billing",
+   "exp": "billing",
+   "ok": true,
+   "conf": 0.9096,
+   "p_exp": 0.9398
+  },
+  {
+   "pred": "billing",
+   "exp": "billing",
+   "ok": true,
+   "conf": 0.9735,
+   "p_exp": 0.9824
+  },
+  {
+   "pred": "billing",
+   "exp": "billing",
+   "ok": true,
+   "conf": 0.9723,
+   "p_exp": 0.9816
+  },
+  {
+   "pred": "billing",
+   "exp": "billing",
+   "ok": true,
+   "conf": 0.9774,
+   "p_exp": 0.9849
+  },
+  {
+   "pred": "shipping",
+   "exp": "shipping",
+   "ok": true,
+   "conf": 0.9793,
+   "p_exp": 0.9862
+  },
+  {
+   "pred": "shipping",
+   "exp": "shipping",
+   "ok": true,
+   "conf": 0.8655,
+   "p_exp": 0.9103
+  },
+  {
+   "pred": "shipping",
+   "exp": "shipping",
+   "ok": true,
+   "conf": 0.9374,
+   "p_exp": 0.9582
+  },
+  {
+   "pred": "shipping",
+   "exp": "shipping",
+   "ok": true,
+   "conf": 0.9685,
+   "p_exp": 0.979
+  },
+  {
+   "pred": "returns",
+   "exp": "returns",
+   "ok": true,
+   "conf": 0.9676,
+   "p_exp": 0.9784
+  },
+  {
+   "pred": "returns",
+   "exp": "returns",
+   "ok": true,
+   "conf": 0.98,
+   "p_exp": 0.9867
+  },
+  {
+   "pred": "returns",
+   "exp": "returns",
+   "ok": true,
+   "conf": 0.8549,
+   "p_exp": 0.9033
+  },
+  {
+   "pred": "returns",
+   "exp": "returns",
+   "ok": true,
+   "conf": 0.9677,
+   "p_exp": 0.9784
+  }
+ ],
+ "score": [
+  {
+   "score": 0.6822,
+   "exp": 0,
+   "ok": false,
+   "abs_err": 0.6822,
+   "conf": 0.356
+  },
+  {
+   "score": 0.7596,
+   "exp": 0,
+   "ok": false,
+   "abs_err": 0.7596,
+   "conf": 0.3348
+  },
+  {
+   "score": 0.7799,
+   "exp": 0,
+   "ok": false,
+   "abs_err": 0.7799,
+   "conf": 0.3123
+  },
+  {
+   "score": 0.8132,
+   "exp": 0,
+   "ok": false,
+   "abs_err": 0.8132,
+   "conf": 0.309
+  },
+  {
+   "score": 0.8625,
+   "exp": 1,
+   "ok": true,
+   "abs_err": 0.13749999999999996,
+   "conf": 0.5069
+  },
+  {
+   "score": 1.017,
+   "exp": 1,
+   "ok": true,
+   "abs_err": 0.016999999999999904,
+   "conf": 0.3579
+  },
+  {
+   "score": 0.9344,
+   "exp": 1,
+   "ok": true,
+   "abs_err": 0.06559999999999999,
+   "conf": 0.4
+  },
+  {
+   "score": 0.7709,
+   "exp": 1,
+   "ok": true,
+   "abs_err": 0.22909999999999997,
+   "conf": 0.548
+  },
+  {
+   "score": 1.2933,
+   "exp": 2,
+   "ok": false,
+   "abs_err": 0.7067000000000001,
+   "conf": 0.2503
+  },
+  {
+   "score": 1.6006,
+   "exp": 2,
+   "ok": true,
+   "abs_err": 0.3994,
+   "conf": 0.4238
+  },
+  {
+   "score": 1.3898,
+   "exp": 2,
+   "ok": false,
+   "abs_err": 0.6102000000000001,
+   "conf": 0.2619
+  },
+  {
+   "score": 1.4043,
+   "exp": 2,
+   "ok": false,
+   "abs_err": 0.5956999999999999,
+   "conf": 0.3064
+  }
+ ],
+ "single_q_latency_ms": {
+  "p50": 95.99570906721056,
+  "p95": 189.7166670532897,
+  "mean": 87.05830770150686,
+  "n": 39
+ },
+ "three_q_latency_ms": {
+  "p50": 120.86075003026053,
+  "max": 867.8531249752268
+ }
+}

@@ -1,0 +1,263 @@
+{
+ "system": "ours",
+ "load_s": 14.798578023910522,
+ "noul": [
+  {
+   "p": 0.999339,
+   "ok": true,
+   "brier": 4.3692100000002996e-07
+  },
+  {
+   "p": 0.999774,
+   "ok": true,
+   "brier": 5.107599999997671e-08
+  },
+  {
+   "p": 0.000661,
+   "ok": true,
+   "brier": 4.3692100000000005e-07
+  },
+  {
+   "p": 0.99921,
+   "ok": true,
+   "brier": 6.240999999999326e-07
+  },
+  {
+   "p": 0.000661,
+   "ok": true,
+   "brier": 4.3692100000000005e-07
+  },
+  {
+   "p": 0.999613,
+   "ok": true,
+   "brier": 1.497690000000203e-07
+  },
+  {
+   "p": 0.000387,
+   "ok": true,
+   "brier": 1.4976899999999997e-07
+  },
+  {
+   "p": 0.999447,
+   "ok": true,
+   "brier": 3.058090000000284e-07
+  },
+  {
+   "p": 0.001927,
+   "ok": true,
+   "brier": 3.7133289999999994e-06
+  },
+  {
+   "p": 0.99921,
+   "ok": true,
+   "brier": 6.240999999999326e-07
+  },
+  {
+   "p": 0.002751,
+   "ok": true,
+   "brier": 7.568001e-06
+  },
+  {
+   "p": 0.999447,
+   "ok": true,
+   "brier": 3.058090000000284e-07
+  },
+  {
+   "p": 0.003928,
+   "ok": true,
+   "brier": 1.5429184e-05
+  },
+  {
+   "p": 0.999811,
+   "ok": true,
+   "brier": 3.572099999999801e-08
+  },
+  {
+   "p": 0.004692,
+   "ok": true,
+   "brier": 2.2014864e-05
+  }
+ ],
+ "choice": [
+  {
+   "pred": "billing",
+   "exp": "billing",
+   "ok": true,
+   "conf": 0.95342,
+   "p_exp": 0.992175
+  },
+  {
+   "pred": "billing",
+   "exp": "billing",
+   "ok": true,
+   "conf": 0.995933,
+   "p_exp": 0.999518
+  },
+  {
+   "pred": "billing",
+   "exp": "billing",
+   "ok": true,
+   "conf": 0.993064,
+   "p_exp": 0.999124
+  },
+  {
+   "pred": "billing",
+   "exp": "billing",
+   "ok": true,
+   "conf": 0.989508,
+   "p_exp": 0.998594
+  },
+  {
+   "pred": "shipping",
+   "exp": "shipping",
+   "ok": true,
+   "conf": 0.988885,
+   "p_exp": 0.998504
+  },
+  {
+   "pred": "shipping",
+   "exp": "shipping",
+   "ok": true,
+   "conf": 0.95342,
+   "p_exp": 0.992175
+  },
+  {
+   "pred": "shipping",
+   "exp": "shipping",
+   "ok": true,
+   "conf": 0.992336,
+   "p_exp": 0.999016
+  },
+  {
+   "pred": "shipping",
+   "exp": "shipping",
+   "ok": true,
+   "conf": 0.975921,
+   "p_exp": 0.996309
+  },
+  {
+   "pred": "returns",
+   "exp": "returns",
+   "ok": true,
+   "conf": 0.989996,
+   "p_exp": 0.998679
+  },
+  {
+   "pred": "returns",
+   "exp": "returns",
+   "ok": true,
+   "conf": 0.989874,
+   "p_exp": 0.998658
+  },
+  {
+   "pred": "billing",
+   "exp": "returns",
+   "ok": false,
+   "conf": 0.637673,
+   "p_exp": 0.122497
+  },
+  {
+   "pred": "returns",
+   "exp": "returns",
+   "ok": true,
+   "conf": 0.945326,
+   "p_exp": 0.990511
+  }
+ ],
+ "score": [
+  {
+   "score": 0.001868,
+   "exp": 0,
+   "ok": true,
+   "abs_err": 0.001868,
+   "conf": 0.989508
+  },
+  {
+   "score": 0.001434,
+   "exp": 0,
+   "ok": true,
+   "abs_err": 0.001434,
+   "conf": 0.99188
+  },
+  {
+   "score": 0.00787,
+   "exp": 0,
+   "ok": true,
+   "abs_err": 0.00787,
+   "conf": 0.965167
+  },
+  {
+   "score": 0.002925,
+   "exp": 0,
+   "ok": true,
+   "abs_err": 0.002925,
+   "conf": 0.984819
+  },
+  {
+   "score": 1.057866,
+   "exp": 1,
+   "ok": true,
+   "abs_err": 0.05786599999999997,
+   "conf": 0.222433
+  },
+  {
+   "score": 1.051142,
+   "exp": 1,
+   "ok": true,
+   "abs_err": 0.05114200000000002,
+   "conf": 0.273882
+  },
+  {
+   "score": 0.955096,
+   "exp": 1,
+   "ok": true,
+   "abs_err": 0.044904000000000055,
+   "conf": 0.327345
+  },
+  {
+   "score": 0.241513,
+   "exp": 1,
+   "ok": false,
+   "abs_err": 0.758487,
+   "conf": 0.468998
+  },
+  {
+   "score": 1.930766,
+   "exp": 2,
+   "ok": true,
+   "abs_err": 0.06923400000000002,
+   "conf": 0.767148
+  },
+  {
+   "score": 1.975199,
+   "exp": 2,
+   "ok": true,
+   "abs_err": 0.024801000000000073,
+   "conf": 0.893795
+  },
+  {
+   "score": 1.968235,
+   "exp": 2,
+   "ok": true,
+   "abs_err": 0.03176500000000004,
+   "conf": 0.871641
+  },
+  {
+   "score": 1.977576,
+   "exp": 2,
+   "ok": true,
+   "abs_err": 0.022424,
+   "conf": 0.902697
+  }
+ ],
+ "single_q_latency_ms": {
+  "p50": 116.6047090664506,
+  "p95": 472.9734999127686,
+  "mean": 196.52857053547334,
+  "n": 39
+ },
+ "three_q_latency_ms": {
+  "p50": 332.0833125617355,
+  "max": 351.34649998508394
+ }
+}

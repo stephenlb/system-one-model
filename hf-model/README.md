@@ -34,6 +34,25 @@ Prefix cache (8 endings):
 5-question request: 166ms
 ```
 
+## Comparison: Strands Decider 2B and the hosted Jev API
+
+Same 39 labelled cases (15 `noul`, 12 `choice`, 12 `score`) sent through
+`/v1/systemone` schema to each system. Local models ran on an Apple
+Silicon Mac (64 GB, MPS, bf16)
+
+| metric | this model (Gemma 4 12B, local) | [Strands Decider 2B v19](https://strandsagents.com/blog/introducing-strands-decider/) (local) | [TypeSafe Jev API](https://docs.typesafe.ai/introduction/quickstart) (hosted) |
+|---|---|---|---|
+| `noul` accuracy | 15/15 | 15/15 | 15/15 |
+| `noul` Brier (lower is better) | 0.000003 | 0.0338 | 0.00035 |
+| `choice` accuracy | 11/12 | 12/12 | 12/12 |
+| `score` accuracy (rounded) | 11/12 | 5/12 | 12/12 |
+| `score` mean error (levels) | 0.09 | 0.48 | 0.004 |
+| 1-question p50 latency | 117 ms | 96 ms | 144 ms |
+| 3-question p50 latency | 332 ms | 121 ms | 164 ms |
+| Size | ~24 GB | ~2B params | n/a |
+
+Test suite: 141 passed. Small hand-written sample
+
 ## Doom played by the model.
 
 <video controls width="640" src="https://huggingface.co/stephenlb/system-one-model/resolve/main/typesafe-replica-doom-game-only.mp4"></video>

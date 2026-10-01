@@ -1,0 +1,263 @@
+{
+ "system": "typesafe",
+ "load_s": 0.0,
+ "noul": [
+  {
+   "p": 0.99,
+   "ok": true,
+   "brier": 0.00010000000000000018
+  },
+  {
+   "p": 0.99,
+   "ok": true,
+   "brier": 0.00010000000000000018
+  },
+  {
+   "p": 0.01,
+   "ok": true,
+   "brier": 0.0001
+  },
+  {
+   "p": 0.99,
+   "ok": true,
+   "brier": 0.00010000000000000018
+  },
+  {
+   "p": 0.01,
+   "ok": true,
+   "brier": 0.0001
+  },
+  {
+   "p": 0.99,
+   "ok": true,
+   "brier": 0.00010000000000000018
+  },
+  {
+   "p": 0.01,
+   "ok": true,
+   "brier": 0.0001
+  },
+  {
+   "p": 0.99,
+   "ok": true,
+   "brier": 0.00010000000000000018
+  },
+  {
+   "p": 0.01,
+   "ok": true,
+   "brier": 0.0001
+  },
+  {
+   "p": 0.99,
+   "ok": true,
+   "brier": 0.00010000000000000018
+  },
+  {
+   "p": 0.01,
+   "ok": true,
+   "brier": 0.0001
+  },
+  {
+   "p": 0.99,
+   "ok": true,
+   "brier": 0.00010000000000000018
+  },
+  {
+   "p": 0.06,
+   "ok": true,
+   "brier": 0.0036
+  },
+  {
+   "p": 0.99,
+   "ok": true,
+   "brier": 0.00010000000000000018
+  },
+  {
+   "p": 0.02,
+   "ok": true,
+   "brier": 0.0004
+  }
+ ],
+ "choice": [
+  {
+   "pred": "billing",
+   "exp": "billing",
+   "ok": true,
+   "conf": 1.0,
+   "p_exp": 1.0
+  },
+  {
+   "pred": "billing",
+   "exp": "billing",
+   "ok": true,
+   "conf": 1.0,
+   "p_exp": 1.0
+  },
+  {
+   "pred": "billing",
+   "exp": "billing",
+   "ok": true,
+   "conf": 1.0,
+   "p_exp": 1.0
+  },
+  {
+   "pred": "billing",
+   "exp": "billing",
+   "ok": true,
+   "conf": 1.0,
+   "p_exp": 1.0
+  },
+  {
+   "pred": "shipping",
+   "exp": "shipping",
+   "ok": true,
+   "conf": 1.0,
+   "p_exp": 1.0
+  },
+  {
+   "pred": "shipping",
+   "exp": "shipping",
+   "ok": true,
+   "conf": 1.0,
+   "p_exp": 1.0
+  },
+  {
+   "pred": "shipping",
+   "exp": "shipping",
+   "ok": true,
+   "conf": 1.0,
+   "p_exp": 1.0
+  },
+  {
+   "pred": "shipping",
+   "exp": "shipping",
+   "ok": true,
+   "conf": 1.0,
+   "p_exp": 1.0
+  },
+  {
+   "pred": "returns",
+   "exp": "returns",
+   "ok": true,
+   "conf": 1.0,
+   "p_exp": 1.0
+  },
+  {
+   "pred": "returns",
+   "exp": "returns",
+   "ok": true,
+   "conf": 1.0,
+   "p_exp": 1.0
+  },
+  {
+   "pred": "returns",
+   "exp": "returns",
+   "ok": true,
+   "conf": 0.88,
+   "p_exp": 0.92
+  },
+  {
+   "pred": "returns",
+   "exp": "returns",
+   "ok": true,
+   "conf": 1.0,
+   "p_exp": 1.0
+  }
+ ],
+ "score": [
+  {
+   "score": 0.0,
+   "exp": 0,
+   "ok": true,
+   "abs_err": 0.0,
+   "conf": 1.0
+  },
+  {
+   "score": 0.0,
+   "exp": 0,
+   "ok": true,
+   "abs_err": 0.0,
+   "conf": 1.0
+  },
+  {
+   "score": 0.01,
+   "exp": 0,
+   "ok": true,
+   "abs_err": 0.01,
+   "conf": 0.99
+  },
+  {
+   "score": 0.0,
+   "exp": 0,
+   "ok": true,
+   "abs_err": 0.0,
+   "conf": 1.0
+  },
+  {
+   "score": 1.0,
+   "exp": 1,
+   "ok": true,
+   "abs_err": 0.0,
+   "conf": 1.0
+  },
+  {
+   "score": 1.0,
+   "exp": 1,
+   "ok": true,
+   "abs_err": 0.0,
+   "conf": 1.0
+  },
+  {
+   "score": 0.96,
+   "exp": 1,
+   "ok": true,
+   "abs_err": 0.040000000000000036,
+   "conf": 0.92
+  },
+  {
+   "score": 1.0,
+   "exp": 1,
+   "ok": true,
+   "abs_err": 0.0,
+   "conf": 0.99
+  },
+  {
+   "score": 2.0,
+   "exp": 2,
+   "ok": true,
+   "abs_err": 0.0,
+   "conf": 1.0
+  },
+  {
+   "score": 2.0,
+   "exp": 2,
+   "ok": true,
+   "abs_err": 0.0,
+   "conf": 1.0
+  },
+  {
+   "score": 2.0,
+   "exp": 2,
+   "ok": true,
+   "abs_err": 0.0,
+   "conf": 1.0
+  },
+  {
+   "score": 2.0,
+   "exp": 2,
+   "ok": true,
+   "abs_err": 0.0,
+   "conf": 1.0
+  }
+ ],
+ "single_q_latency_ms": {
+  "p50": 143.86920805554837,
+  "p95": 207.23062509205192,
+  "mean": 153.02786856698685,
+  "n": 39
+ },
+ "three_q_latency_ms": {
+  "p50": 164.1365415416658,
+  "max": 222.24066592752934
+ }
+}
