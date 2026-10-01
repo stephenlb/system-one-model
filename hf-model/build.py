@@ -99,7 +99,8 @@ def main() -> None:
         }
     }
     config_path.write_text(json.dumps(saved, indent=2) + "\n")
-    shutil.copy(ROOT / "README.md", out / "README.md")
+    for name in ("README.md", "mario-world-1.mp4"):
+        shutil.copy(ROOT / name, out / name)
     print(f"wrote {out}")
 
 

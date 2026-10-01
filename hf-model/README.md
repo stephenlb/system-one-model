@@ -11,15 +11,20 @@ tags:
 
 # System One Model (using Gemma 4 12B)
 
-`google/gemma-4-12B` with its 262k-token language-model head replaced by a
-low dimentional vector that outputs one logit per answer. The decoder is
-unchanged. One forward pass gives the 26 logits; questions (`noul`, `choice`,
-`score`) are answered by softmax over the logits each question.
+Using encoder and decoder from `google/gemma-4-12B` with its 262k-token
+language-model head replaced by a low dimentional vector
+that outputs one logit per answer. The forward pass gives the 26 logits.
+Questions (`noul`, `choice`, `score`) are answered by softmax
+over the logits for each question.
+
+## Super Mario Bros. World 1-1 played by the model.
+
+<video controls width="640" src="https://huggingface.co/stephenlb/system-one-model/resolve/main/mario-world-1.mp4"></video>
+
+## Model API
 
 Requires `transformers>=5.17`. The repo ships custom code, so pass
 `trust_remote_code=True`.
-
-## Model API
 
 ```python
 from transformers import AutoModelForMultimodalLM, AutoTokenizer
