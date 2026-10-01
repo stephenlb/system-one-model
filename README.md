@@ -1,10 +1,27 @@
 # System One Model (using Gemma 4 12B)
 
-Using encoder and decoder from `google/gemma-4-12B` with its 262k-token
+Using encoder and decoder from `google/gemma-4-12B` with 262k-token
 language-model head replaced by a low dimentional vector
 that outputs one logit per answer. The forward pass gives the 26 logits.
 Questions (`noul`, `choice`, `score`) are answered by softmax
 over the logits for each question.
+
+## Benchmark on RTX 5090
+
+Median latency is **34.1ms** for a warm single-question decision.
+
+```
+Warm single-question decisions (latency_bench, 55 calls):
+    p50  34.1ms
+    p95  35.0ms
+    max  36.3ms
+
+Prefix cache (8 endings):
+    decisions changed:    0 of 8
+    batched vs unbatched: 64.3ms vs 270ms
+
+5-question request: 166ms
+```
 
 <img width="3008" height="1376" alt="system-one-model" src="https://github.com/user-attachments/assets/d5f5daf0-09c8-4dba-ac7e-b3599e2036d0" />
 

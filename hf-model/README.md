@@ -17,6 +17,23 @@ that outputs one logit per answer. The forward pass gives the 26 logits.
 Questions (`noul`, `choice`, `score`) are answered by softmax
 over the logits for each question.
 
+## Benchmark on RTX 5090
+
+Median latency is **34.1ms** for a warm single-question decision.
+
+```
+Warm single-question decisions (latency_bench, 55 calls):
+    p50  34.1ms
+    p95  35.0ms
+    max  36.3ms
+
+Prefix cache (8 endings):
+    decisions changed:    0 of 8
+    batched vs unbatched: 64.3ms vs 270ms
+
+5-question request: 166ms
+```
+
 ## Doom played by the model.
 
 <video controls width="640" src="https://huggingface.co/stephenlb/system-one-model/resolve/main/typesafe-replica-doom-game-only.mp4"></video>
