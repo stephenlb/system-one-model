@@ -21,6 +21,14 @@ over the logits for each question.
 
 <video controls width="640" src="https://huggingface.co/stephenlb/system-one-model/resolve/main/mario-world-1.mp4"></video>
 
+## Doom played by the model.
+
+<video controls width="640" src="https://huggingface.co/stephenlb/system-one-model/resolve/main/typesafe-replica-doom-game-only.mp4"></video>
+
+## Flappy Bird played by the model.
+
+<video controls width="640" src="https://huggingface.co/stephenlb/system-one-model/resolve/main/jev-system-one-replica-flappy-bird.mp4"></video>
+
 ## Model API
 
 Requires `transformers>=5.17`. The repo ships custom code, so pass
@@ -264,4 +272,4 @@ by everyone who needs them most.
 
 # Github Source System One Model
 
-https://github.com/stephenlb/truetype.ai-open
+https://github.com/stephenlb/system-one-model
