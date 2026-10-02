@@ -57,6 +57,10 @@ Test suite: 141 passed. Small hand-written sample
 
 <video controls width="640" src="https://huggingface.co/stephenlb/system-one-model/resolve/main/typesafe-replica-doom-game-only.mp4"></video>
 
+## Tetris played by the model.
+
+<video controls width="640" src="https://huggingface.co/stephenlb/system-one-model/resolve/main/tetris.mp4"></video>
+
 ## Super Mario Bros. World 1-1 played by the model.
 
 <video controls width="640" src="https://huggingface.co/stephenlb/system-one-model/resolve/main/mario-world-1.mp4"></video>
