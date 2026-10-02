@@ -42,10 +42,12 @@ Silicon Mac (64 GB, MPS, bf16)
 
 | metric | this model (Gemma 4 12B, local) | [Strands Decider 2B v19](https://strandsagents.com/blog/introducing-strands-decider/) (local) | [TypeSafe Jev API](https://docs.typesafe.ai/introduction/quickstart) (hosted) |
 |---|---|---|---|
+| Mario | 5/5 | 5/5 | 5/5 |
+| Tetris | 40/40 | 40/40 | 40/40 |
 | `noul` accuracy | 15/15 | 15/15 | 15/15 |
 | `noul` Brier (lower is better) | 0.000003 | 0.0338 | 0.00035 |
 | `choice` accuracy | 11/12 | 12/12 | 12/12 |
-| `score` accuracy (rounded) | 11/12 | 5/12 | 12/12 |
+| `score` accuracy | 11/12 | 5/12 | 12/12 |
 | `score` mean error (levels) | 0.09 | 0.48 | 0.004 |
 | 1-question p50 latency | 117 ms | 96 ms | 144 ms |
 | 3-question p50 latency | 332 ms | 121 ms | 164 ms |
