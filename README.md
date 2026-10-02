@@ -119,6 +119,10 @@ fall back safely to a full-vocabulary GPU gather.
 
 https://github.com/user-attachments/assets/c24ad3fd-044c-46b9-8862-46b70dd8e201
 
+## Tetris played by the model.
+
+https://github.com/user-attachments/assets/d9b3b120-3d15-4895-8cc6-02628bdf90df
+
 ## Super Mario Bros. World 1-1 played by the model.
 
 https://github.com/user-attachments/assets/300e9413-68e2-48e5-a3cb-e96785adaee3
